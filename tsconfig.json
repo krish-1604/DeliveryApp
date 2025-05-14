@@ -9,6 +9,8 @@
 	"include": [
 		"**/*.ts",
 		"**/*.tsx",
+		"assets/images/*.png",
+		"images.d.ts",
 		".expo/types/**/*.ts",
 		"expo-env.d.ts",
 		"nativewind-env.d.ts"
