@@ -1,25 +1,60 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
-import pluginReact from 'eslint-plugin-react';
-import { defineConfig, globalIgnores } from 'eslint/config';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import reactPlugin from 'eslint-plugin-react';
 
-export default defineConfig([
-  { files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'], plugins: { js }, extends: ['js/recommended'] },
-  { files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'], languageOptions: { globals: globals.browser } },
-  tseslint.configs.recommended,
-  pluginReact.configs.flat.recommended,
-  globalIgnores([
-    'tailwind.config.js',
-	'commitlint.config.js',
-    'metro.config.js',
-    'babel.config.js',
-    'app.json',
-    'app.config.js',
-    'expo-cli.config.js',
-    'expo-constants.d.ts',
-    'expo-constants.ts',
-    'expo-constants.tsx',
-    'expo-constants.d.ts',
-  ]),
-]);
+/** @type {import("eslint").Linter.FlatConfig[]} */
+export default [
+	js.configs.recommended,
+
+	// 🔽 Ignored files/folders
+	{
+		ignores: [
+			'node_modules/**',
+			'dist/**',
+			'build/**',
+			'eslint.config.js',
+			'babel.config.js',
+			'commitlint.config.js',
+			'jest.config.js',
+			'tsconfig.json',
+			'package.json',
+			'pnpm-lock.yaml',
+			'pnpmfile.cjs',
+			'metro.config.js',
+			'tailwind.config.js',
+		],
+	},
+
+	// 🔽 Main config
+	{
+		files: ['**/*.{ts,tsx,js,jsx}'],
+		languageOptions: {
+			parser: tsParser,
+			parserOptions: {
+				ecmaVersion: '2022',
+				sourceType: 'module',
+				project: './tsconfig.json',
+			},
+			globals: {
+				...globals.node,
+				...globals.browser,
+				React: 'readonly',
+				require: 'readonly',
+				module: 'readonly',
+				__dirname: 'readonly',
+			},
+		},
+		plugins: {
+			'@typescript-eslint': tseslint,
+			'react': reactPlugin,
+		},
+		rules: {
+			...tseslint.configs.recommended.rules,
+			indent: ['error', 'tab'],
+			eqeqeq: ['error', 'always'],
+			'no-console': ['error'],
+		},
+	},
+];
