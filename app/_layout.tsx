@@ -59,8 +59,15 @@
 // }
 
 import '../global.css';
+// import Background from './views/Background';
 // import DocumentPage from './views/document-page';
-import RegistrationPage from './views/registration-page';
+// import FinalDetailsPage from './views/backup-details-page';
+// import RegisterScreen from './views/register';
+// import DocumentPage from './views/document-page';
+// import RegistrationPage from './views/registration-page';
+// import VehicleDetailsPage from './views/VehicleDetailsPage';
+// import BankDetailsPage from './views/BankDetailsPage';
+import EmergencyDetailsPage from './views/EmergencyDetailsPage';
 // import Background from './views/Background';
 // import RegisterScreen from './views/register';
 // import VerifyScreen from './views/verify';
@@ -70,7 +77,11 @@ export default function RootLayout() {
 		// <VerifyScreen />
 		// <RegisterScreen />
 		// <DocumentPage />
-		<RegistrationPage />
-		// <Background/>
+		// <RegistrationPage />
+		// <Background />
+		// <FinalDetailsPage />
+		// <VehicleDetailsPage />
+		// <BankDetailsPage />
+		<EmergencyDetailsPage />
 	);
 }
