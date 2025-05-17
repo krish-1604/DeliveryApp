@@ -59,12 +59,16 @@
 // }
 
 import '../global.css';
-import RegisterScreen from './register';
-// import VerifyScreen from './verify';
+import Background from './views/Background';
+// import RegisterScreen from './views/register';
+// import DocumentPage from './views/document_page';
+// import VerifyScreen from './views/verify';
 
 export default function RootLayout() {
 	return (
 		// <VerifyScreen />
-		<RegisterScreen />
+		// <RegisterScreen />
+		// <DocumentPage />
+		<Background/>
 	);
 }

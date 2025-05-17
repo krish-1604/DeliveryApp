@@ -1,5 +1,5 @@
-import { theme } from '@/constants/theme';
-import { CheckBoxType } from '@/utils/types';
+import { theme } from '@/app/constants/theme';
+import { CheckBoxType } from '@/app/utils/types';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import AnimatedCheckbox from 'react-native-checkbox-reanimated';
