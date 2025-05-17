@@ -1,10 +1,10 @@
-import { ButtonHighlight, ButtonOpacity } from '@/components/UI/button';
-import { Body, Heading } from '@/components/UI/typography';
+import { ButtonHighlight, ButtonOpacity } from '@/app/components/button';
+import { Body, Heading } from '@/app/components/typography';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { OTPType } from '@/utils/types';
-import { OTPInput } from '@/components/UI/input';
+import { OTPType } from '@/app/utils/types';
+import { OTPInput } from '@/app/components/input';
 
 const verifyScreen = () => {
 	const [otp, setOtp] = useState<OTPType>({

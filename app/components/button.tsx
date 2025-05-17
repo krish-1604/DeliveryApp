@@ -1,4 +1,4 @@
-import { ButtonType } from '@/utils/types';
+import { ButtonType } from '@/app/utils/types';
 import { TouchableHighlight, TouchableOpacity } from 'react-native';
 
 const ButtonHighlight = ({ className, disabled = false, onPress, children }: ButtonType) => {

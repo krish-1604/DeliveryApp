@@ -1,4 +1,4 @@
-import { TextType } from '@/utils/types';
+import { TextType } from '@/app/utils/types';
 import { Text } from 'react-native';
 
 const Heading = ({ className, text, children }: TextType) => {

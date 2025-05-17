@@ -1,9 +1,9 @@
-import Background from '@/components/Auth/Background';
-import { ButtonHighlight } from '@/components/UI/button';
-import CheckBox from '@/components/UI/checkbox';
-import { Input } from '@/components/UI/input';
-import { Body } from '@/components/UI/typography';
-import { theme } from '@/constants/theme';
+import Background from '@/app/views/Background';
+import { ButtonHighlight } from '@/app/components/button';
+import CheckBox from '@/app/components/checkbox';
+import { Input } from '@/app/components/input';
+import { Body } from '@/app/components/typography';
+import { theme } from '@/app/constants/theme';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 

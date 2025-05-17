@@ -1,4 +1,4 @@
-import { InputType, OTPInputType, OTPType } from '@/utils/types';
+import { InputType, OTPInputType, OTPType } from '@/app/utils/types';
 import {
 	NativeSyntheticEvent,
 	TextInput,
