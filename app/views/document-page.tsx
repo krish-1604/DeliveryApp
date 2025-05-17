@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { Pressable, SectionList, Text, View } from 'react-native';
+import { SectionList, Text, View } from 'react-native';
+import CheckedGotoListTile from '../components/gotoListTile';
 
 export default function DocumentPage() {
 	return (
@@ -17,9 +17,9 @@ export default function DocumentPage() {
 				sections={dataToBeFetchedByAController}
 				renderItem={({ item }) =>
 					item.status === 'pending' ? (
-						<SelectionListTile name={item.name} onPress={() => {}} />
+						<CheckedGotoListTile name={item.name} onPress={() => {}} />
 					) : (
-						<CompletedSelectionListTile name={item.name} onPress={() => {}} />
+						<CheckedGotoListTile name={item.name} onPress={() => {}} isChecked={true} />
 					)
 				}
 				renderSectionHeader={({ section: { title } }) => (
@@ -30,42 +30,6 @@ export default function DocumentPage() {
 	);
 }
 
-function SelectionListTile({ name = '', onPress = () => {} }) {
-	return (
-		<View className="px-5 py-3">
-			<Pressable
-				onPress={onPress}
-				className="flex-row items-center p-4 bg-white mx-2 my-0 rounded-lg shadow"
-			>
-				<View className="flex-1">
-					<Text className="font-medium text-base text-[#2B2E35]">{name}</Text>
-				</View>
-				<View>
-					<Ionicons name="chevron-forward" size={24} color="#969AA4" />
-				</View>
-			</Pressable>
-		</View>
-	);
-}
-
-function CompletedSelectionListTile({ name = '', onPress = () => {} }) {
-	return (
-		<View className="px-5 py-3">
-			<Pressable
-				onPress={onPress}
-				className="flex-row items-center p-4 bg-white mx-2 my-0 rounded-lg shadow"
-			>
-				<Ionicons name="checkmark" size={24} color="#2B2E35" />
-				<View className="flex-1">
-					<Text className="font-medium text-base text-[#2B2E35]">{name}</Text>
-				</View>
-				<View>
-					<Ionicons name="chevron-forward" size={24} color="#969AA4" />
-				</View>
-			</Pressable>
-		</View>
-	);
-}
 
 const dataToBeFetchedByAController = [
 	{
