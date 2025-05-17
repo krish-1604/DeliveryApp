@@ -5,6 +5,7 @@ import {
 	TextInputChangeEventData,
 	TextInputKeyPressEventData,
 	View,
+	Text,
 } from 'react-native';
 import { Caption } from './typography';
 import { useRef } from 'react';
@@ -39,9 +40,9 @@ const Input = ({
 
 	return (
 		<View>
-			{label !== '' && <Caption className="!text-slate-700" text={label} />}
+			<Text style={{ color: '#0f172a', fontWeight: '500', marginBottom: 4 }}>{label}</Text>
 			<TextInput
-				className={`${className} w-full h-12 text-lg outline-secondary border-primary border px-5 mt-2 rounded-lg`}
+				className={`${className} w-full h-12 text-lg outline-secondary border-primary border px-5 py-1 mt-2 rounded-lg`}
 				placeholder={placeholder}
 				value={value}
 				onChange={handleChange}
@@ -95,7 +96,7 @@ const OTPInput = ({ value, onChange }: OTPInputType) => {
 						ref={(ref) => {
 							inputsRef.current[index] = ref;
 						}}
-						className="w-12 h-12 outline-secondary text-center font-medium text-lg border-primary border px-3 mt-2 rounded-lg"
+						className="w-12 h-12 outline-secondary text-center font-medium text-lg border-primary border px-4 mt-2 rounded-lg"
 						value={value[key]}
 						onChangeText={(text) => handleChange(text, index)}
 						onKeyPress={(e) => handleKeyPress(e, index)}
