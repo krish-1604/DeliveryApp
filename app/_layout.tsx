@@ -59,6 +59,9 @@
 // }
 
 import '../global.css';
+import AadhaarCardDetails from './views/AadhaarCardDetails';
+// import AccountPage from './views/AccountPage';
+// import BankDetailsPage from './views/BankDetailsPage';
 // import Background from './views/Background';
 // import DocumentPage from './views/document-page';
 // import FinalDetailsPage from './views/backup-details-page';
@@ -67,7 +70,9 @@ import '../global.css';
 // import RegistrationPage from './views/registration-page';
 // import VehicleDetailsPage from './views/VehicleDetailsPage';
 // import BankDetailsPage from './views/BankDetailsPage';
-import EmergencyDetailsPage from './views/EmergencyDetailsPage';
+// import EmergencyDetailsPage from './views/EmergencyDetailsPage';
+// import LeavePage from './views/LeavePage';
+// import VehicleDetailsPage from './views/VehicleDetailsPage';
 // import Background from './views/Background';
 // import RegisterScreen from './views/register';
 // import VerifyScreen from './views/verify';
@@ -82,6 +87,9 @@ export default function RootLayout() {
 		// <FinalDetailsPage />
 		// <VehicleDetailsPage />
 		// <BankDetailsPage />
-		<EmergencyDetailsPage />
+		// <EmergencyDetailsPage />
+		<AadhaarCardDetails />
+		// <AccountPage />
+		// <LeavePage />
 	);
 }
