@@ -5,14 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 export default function AccountPage() {
 	return (
 		<View className="flex-1 bg-gray-50 p-5">
-			<View className="flex-row items-center mb-4">
+			<View className="flex-row items-center justify-center mb-4">
 				<Ionicons name="person-circle-outline" size={24} className="mr-2" />
 				<Text className="text-2xl font-semibold">Account</Text>
 			</View>
 			<View className="bg-white rounded-xl p-4 mb-6 flex-row items-center">
 				<View className="mr-4">
 					<Image
-						source={{ uri: 'https://placeholder.com/logo' }}
+						source={{
+							uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBIcthqV0b6PKEn8GV0mX8nw8dpbQOkKOUWg&s',
+						}}
 						className="w-16 h-16 rounded-full"
 						alt="IEEE Logo"
 					/>

@@ -60,7 +60,8 @@
 
 import '../global.css';
 // import AadhaarCardDetails from './views/AadhaarCardDetails';
-import LeaveSubmittedPage from './views/LeaveSubmittedPage';
+// import LeaveSubmittedPage from './views/LeaveSubmittedPage';
+import OrdersScreen from './views/OrdersScreen';
 // import AccountPage from './views/AccountPage';
 // import BankDetailsPage from './views/BankDetailsPage';
 // import Background from './views/Background';
@@ -90,7 +91,8 @@ export default function RootLayout() {
 		// <BankDetailsPage />
 		// <EmergencyDetailsPage />
 		// <AadhaarCardDetails />
-		<LeaveSubmittedPage />
+		// <LeaveSubmittedPage />
+		<OrdersScreen />
 		// <AccountPage />
 		// <LeavePage />
 	);
