@@ -1,4 +1,4 @@
-// import Background from '@/app/views/Background';
+import Background from '@/app/views/Background';
 import { ButtonHighlight } from '@/app/components/button';
 import CheckBox from '@/app/components/checkbox';
 import { Input } from '@/app/components/input';
@@ -21,7 +21,7 @@ const RegisterScreen = () => {
 
 	return (
 		<View className="relative flex w-screen dark:bg-pink-400 bg-white h-screen overflow-hidden">
-			{/* <Background /> */}
+			<Background />
 			<View className="w-full h-2/6 px-5 flex gap-4 justify-end pb-16">
 				<Input
 					type="number"

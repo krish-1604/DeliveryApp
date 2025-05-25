@@ -5,11 +5,10 @@ import authImage from '../assets/images/main-splash.png';
 const Background = () => {
 	return (
 		<View className="w-full relative h-4/6">
-			<View className="absolute -top-1/4 scale-[170] overflow-hidden left-0 w-screen h-full rounded-br-[50%] rounded-tr-[60%] rotate-[60deg] bg-gradient-to-br from-primary/80 via-[50%] via-primary/70 to-primary/5 "></View>
+			<View className="absolute -top-1/4 scale-[2] overflow-hidden left-0 w-full h-full rounded-br-[50%] rounded-tr-[60%] rotate-[60deg] bg-primary/40" />
 			<View className="flex px-5 justify-center gap-5 items-center w-full h-full">
 				<Image
 					source={authImage}
-					// source={require('../../assets/images/auth/obj.png')}
 					className="flex justify-center align-middle h-full/2 w-auto object-cover aspect-square"
 				/>
 				<View className="absolute top-10 right-16 bg-white rounded-full w-1 h-1"></View>
@@ -26,3 +25,5 @@ const Background = () => {
 };
 
 export default Background;
+
+// absolute -top-1/4 scale-[170] overflow-hidden left-0 w-screen h-full rounded-br-[50%] rounded-tr-[60%] rotate-[60deg] bg-gradient-to-br from-primary/80 via-[50%] via-primary/70 to-primary/5
