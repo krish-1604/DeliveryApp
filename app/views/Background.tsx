@@ -1,7 +1,7 @@
 import { Image, View } from 'react-native';
 import { Body, Heading } from '../components/typography';
 
-import authImage from "../assets/images/main-splash.png";
+import authImage from '../assets/images/main-splash.png';
 const Background = () => {
 	return (
 		<View className="w-full relative h-4/6">
@@ -10,7 +10,7 @@ const Background = () => {
 				<Image
 					source={authImage}
 					// source={require('../../assets/images/auth/obj.png')}
-					className="flex justify-center align-middle h-full w-auto object-cover aspect-square"
+					className="flex justify-center align-middle h-full/2 w-auto object-cover aspect-square"
 				/>
 				<View className="absolute top-10 right-16 bg-white rounded-full w-1 h-1"></View>
 				<View className="absolute top-16 right-1/2 bg-white rounded-full w-1 h-1"></View>

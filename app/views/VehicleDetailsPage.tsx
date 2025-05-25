@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ButtonOpacity } from '../components/button';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../components/input';
@@ -7,6 +7,19 @@ import { useNavigation } from '@react-navigation/native';
 
 export default function VehicleDetailsPage() {
 	const navigation = useNavigation();
+	const [isSaving, setIsSaving] = useState(false);
+	const handlePress = () => {
+		if (!isFormValid()) return;
+
+		setIsSaving(true);
+
+		// Simulate saving process
+		setTimeout(() => {
+			setIsSaving(false);
+			// Navigate to next page after successful save
+			navigation.replace('/regi');
+		}, 2000);
+	};
 	const [vehicleDetails, setVehicleDetails] = useState({
 		type: '',
 		model: '',
@@ -101,12 +114,29 @@ export default function VehicleDetailsPage() {
 					/>
 				</View>
 
-				<View className="mb-8">
-					<ButtonOpacity onPress={() => {}} disabled={!isFormValid()}>
-						<Text className="text-white font-medium text-xl py-2">Save Details</Text>
+				<View className="mb-100">
+					<ButtonOpacity
+						onPress={handlePress}
+						disabled={!isFormValid() || isSaving}
+						className={`${!isFormValid() || isSaving ? 'bg-gray-400' : 'bg-primary'} rounded-full px-6`}
+					>
+						<Text className="text-white font-medium text-xl py-2">
+							{isSaving ? 'Saving...' : 'Save Details'}
+						</Text>
+						{isSaving && (
+							<View className="absolute right-4">
+								<ActivityIndicator color="white" />
+							</View>
+						)}{' '}
 					</ButtonOpacity>
 				</View>
 			</ScrollView>
 		</View>
 	);
+
+	// Update Button to use handlePress and show loading state
+	// Replace the ButtonOpacity in your return with:
+	// <View className="mb-8">
+	// 	<ButtonOpacity onPress={handlePress} disabled={!isFormValid() || isSaving}></ButtonOpacity>
+	// </View>;
 }

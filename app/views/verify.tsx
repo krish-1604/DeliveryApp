@@ -2,9 +2,10 @@ import { ButtonHighlight, ButtonOpacity } from '@/app/components/button';
 import { Body, Heading } from '@/app/components/typography';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { OTPType } from '@/app/utils/types';
 import { OTPInput } from '@/app/components/input';
+import { useNavigation } from 'expo-router';
 
 const verifyScreen = () => {
 	const [otp, setOtp] = useState<OTPType>({
@@ -15,6 +16,7 @@ const verifyScreen = () => {
 		five: '',
 		six: '',
 	});
+	const navigation = useNavigation();
 	return (
 		<View className="px-5 flex mt-10 gap-5">
 			<ButtonOpacity
@@ -24,17 +26,33 @@ const verifyScreen = () => {
 				<Ionicons name="chevron-back" size={24} color="black" />
 			</ButtonOpacity>
 			<Heading text="Enter OTP to verify" />
-			<Body text="A 6 digit OTP has been sent to your phone number +91 9999988888. ">
-				<Body className="font-bold !text-primary" text="Change" />
-			</Body>
+			<View>
+				<Text className="text-text text-lg">
+					A 6 digit OTP has been sent to your phone number +91 9999988888.
+					<Text className="text-primary font-semibold" onPress={() => navigation.goBack()}>
+						Change
+					</Text>
+				</Text>
+			</View>
 
 			<OTPInput onChange={(value, key) => setOtp({ ...otp, [key]: value })} value={otp} />
 
-			<ButtonHighlight onPress={() => {}}>
+			<ButtonHighlight onPress={handlePress} className="w-full h-12 mt-4">
 				<Body className="!font-semibold !text-white" text="Verify OTP" />
 			</ButtonHighlight>
 		</View>
 	);
-};
 
+	function handlePress() {
+		const otpValues = Object.values(otp).join('');
+		if (otpValues.length !== 6 || !/^\d{6}$/.test(otpValues)) {
+			alert('Please enter a valid 6-digit OTP');
+			return;
+		}
+		// make api call , if call returned rejected, alert and return
+		// if call returned resolved, navigate to next screen
+		alert(`OTP ${otpValues} verified successfully!`);
+		navigation.navigate('/regi');
+	}
+};
 export default verifyScreen;

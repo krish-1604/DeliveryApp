@@ -59,41 +59,47 @@
 // }
 
 import '../global.css';
-// import AadhaarCardDetails from './views/AadhaarCardDetails';
-// import LeaveSubmittedPage from './views/LeaveSubmittedPage';
+import AadhaarCardDetails from './views/AadhaarCardDetails';
+import LeaveSubmittedPage from './views/LeaveSubmittedPage';
 import OrdersScreen from './views/OrdersScreen';
-// import AccountPage from './views/AccountPage';
-// import BankDetailsPage from './views/BankDetailsPage';
+import AccountPage from './views/AccountPage';
+import BankDetailsPage from './views/BankDetailsPage';
 // import Background from './views/Background';
-// import DocumentPage from './views/document-page';
-// import FinalDetailsPage from './views/backup-details-page';
-// import RegisterScreen from './views/register';
-// import DocumentPage from './views/document-page';
-// import RegistrationPage from './views/registration-page';
-// import VehicleDetailsPage from './views/VehicleDetailsPage';
-// import BankDetailsPage from './views/BankDetailsPage';
-// import EmergencyDetailsPage from './views/EmergencyDetailsPage';
-// import LeavePage from './views/LeavePage';
-// import VehicleDetailsPage from './views/VehicleDetailsPage';
-// import Background from './views/Background';
-// import RegisterScreen from './views/register';
-// import VerifyScreen from './views/verify';
+import DocumentPage from './views/document-page';
+import FinalDetailsPage from './views/backup-details-page';
+import RegisterScreen from './views/register';
+import RegistrationPage from './views/registration-page';
+import VehicleDetailsPage from './views/VehicleDetailsPage';
+import EmergencyDetailsPage from './views/EmergencyDetailsPage';
+import LeavePage from './views/LeavePage';
+import VerifyScreen from './views/verify';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaView } from 'react-native';
+import Map from './views/MapGoBrrrrrrrrrrr';
+const Stack = createStackNavigator();
 
 export default function RootLayout() {
 	return (
-		// <VerifyScreen />
-		// <RegisterScreen />
-		// <DocumentPage />
-		// <RegistrationPage />
-		// <Background />
-		// <FinalDetailsPage />
-		// <VehicleDetailsPage />
-		// <BankDetailsPage />
-		// <EmergencyDetailsPage />
-		// <AadhaarCardDetails />
-		// <LeaveSubmittedPage />
-		<OrdersScreen />
-		// <AccountPage />
-		// <LeavePage />
+		<SafeAreaView style={{ flex: 1 }}>
+			<Stack.Navigator
+				initialRouteName="/map"
+				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
+			>
+				<Stack.Screen name="/reg/verify" component={VerifyScreen} />
+				<Stack.Screen name="/reg" component={RegisterScreen} />
+				<Stack.Screen name="/doc" component={DocumentPage} />
+				<Stack.Screen name="/regi" component={RegistrationPage} />
+				<Stack.Screen name="/final" component={FinalDetailsPage} />
+				<Stack.Screen name="/vehicle" component={VehicleDetailsPage} />
+				<Stack.Screen name="/bank" component={BankDetailsPage} />
+				<Stack.Screen name="/emergency" component={EmergencyDetailsPage} />
+				<Stack.Screen name="/aadhaar" component={AadhaarCardDetails} />
+				<Stack.Screen name="/leave-submitted" component={LeaveSubmittedPage} />
+				<Stack.Screen name="/orders" component={OrdersScreen} />
+				<Stack.Screen name="/account" component={AccountPage} />
+				<Stack.Screen name="/leave" component={LeavePage} />
+				<Stack.Screen name="/map" component={Map} />
+			</Stack.Navigator>
+		</SafeAreaView>
 	);
 }
