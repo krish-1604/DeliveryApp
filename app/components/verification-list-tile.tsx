@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 
 export default function VerificationListTile({
@@ -17,9 +16,6 @@ export default function VerificationListTile({
 					<Text className={` font-bold ${!isVerified ? 'text-[#969AA4]' : 'text-[#FAA41A]'}`}>
 						{isVerified ? 'Verified' : 'Not Verified'}
 					</Text>
-				</View>
-				<View>
-					<Ionicons name="chevron-forward" size={24} color="#969AA4" />
 				</View>
 			</Pressable>
 		</View>

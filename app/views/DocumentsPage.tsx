@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -9,24 +9,134 @@ import {
 	Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
+import ErrorToast from '../components/error';
+
+const DOCUMENTS_STATUS_KEY = 'documents_status';
+const COMPLETION_STATUS_KEY = 'document_completion_status';
+
+interface DocumentsStatus {
+	aadhaarCard: boolean;
+	panCard: boolean;
+	drivingLicense: boolean;
+}
 
 const DocumentsPage = () => {
 	const navigation = useNavigation<NavigationProp<'Documents'>>();
+	const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus>({
+		aadhaarCard: false,
+		panCard: false,
+		drivingLicense: false,
+	});
+	const [errorMsg, setErrorMsg] = useState('');
+
+	// Load documents status on component mount and when screen comes into focus
+	useEffect(() => {
+		loadDocumentsStatus();
+	}, []);
+
+	useFocusEffect(
+		React.useCallback(() => {
+			loadDocumentsStatus();
+		}, [])
+	);
+
+	const loadDocumentsStatus = async () => {
+		try {
+			const savedStatus = await AsyncStorage.getItem(DOCUMENTS_STATUS_KEY);
+			if (savedStatus) {
+				const parsedStatus = JSON.parse(savedStatus);
+				setDocumentsStatus(parsedStatus);
+			}
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while loading documents status.'
+			);
+			// console.error('Error loading documents status:', error);
+		}
+	};
+
+	const updateCompletionStatus = async () => {
+		try {
+			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
+			let completionStatus = {
+				personalInformation: true,
+				personalDocuments: false,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+
+			if (savedStatus) {
+				completionStatus = JSON.parse(savedStatus);
+			}
+
+			// Check if all documents are uploaded
+			const allDocumentsUploaded = Object.values(documentsStatus).every((status) => status);
+			completionStatus.personalDocuments = allDocumentsUploaded;
+
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while updating completion status.'
+			);
+			// console.error('Error updating completion status:', error);
+		}
+	};
+
+	// Update completion status whenever documents status changes
+	useEffect(() => {
+		updateCompletionStatus();
+	}, [documentsStatus]);
+
 	const handleBackPress = () => {
 		navigation.goBack();
 	};
+
 	const handleDocumentPress = (documentType: string) => {
 		navigation.navigate('Aadhaar', { text: documentType });
 	};
 
-	const DocumentButton = ({ title, onPress }: { title: string; onPress: () => void }) => (
+	const getDocumentStatus = (documentType: string): boolean => {
+		switch (documentType) {
+		case 'Aadhar Card':
+			return documentsStatus.aadhaarCard;
+		case 'PAN Card':
+			return documentsStatus.panCard;
+		case 'Driving License':
+			return documentsStatus.drivingLicense;
+		default:
+			return false;
+		}
+	};
+
+	const DocumentButton = ({
+		title,
+		onPress,
+		isCompleted = false,
+	}: {
+		title: string;
+		onPress: () => void;
+		isCompleted?: boolean;
+	}) => (
 		<TouchableOpacity style={styles.documentButton} onPress={onPress} activeOpacity={0.7}>
-			<Text style={styles.documentButtonText}>{title}</Text>
+			<View style={styles.documentButtonContent}>
+				<Text style={styles.documentButtonText}>{title}</Text>
+				{isCompleted && (
+					<View style={styles.completedBadge}>
+						<Ionicons name="checkmark" size={16} color="#fff" />
+					</View>
+				)}
+			</View>
 			<Ionicons name="chevron-forward" size={20} color="#666" />
 		</TouchableOpacity>
 	);
+
+	const completedCount = Object.values(documentsStatus).filter((status) => status).length;
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -46,17 +156,35 @@ const DocumentsPage = () => {
 					Upload focused photos of below documents{'\n'}for faster verification
 				</Text>
 
-				<View style={styles.documentsContainer}>
-					<DocumentButton title="Aadhar Card" onPress={() => handleDocumentPress('Aadhar Card')} />
+				{/* Progress indicator */}
+				<View style={styles.progressContainer}>
+					<Text style={styles.progressText}>{completedCount}/3 documents completed</Text>
+					<View style={styles.progressBar}>
+						<View style={[styles.progressFill, { width: `${(completedCount / 3) * 100}%` }]} />
+					</View>
+				</View>
 
-					<DocumentButton title="PAN Card" onPress={() => handleDocumentPress('PAN Card')} />
+				<View style={styles.documentsContainer}>
+					<DocumentButton
+						title="Aadhar Card"
+						onPress={() => handleDocumentPress('Aadhar Card')}
+						isCompleted={getDocumentStatus('Aadhar Card')}
+					/>
+
+					<DocumentButton
+						title="PAN Card"
+						onPress={() => handleDocumentPress('PAN Card')}
+						isCompleted={getDocumentStatus('PAN Card')}
+					/>
 
 					<DocumentButton
 						title="Driving License"
 						onPress={() => handleDocumentPress('Driving License')}
+						isCompleted={getDocumentStatus('Driving License')}
 					/>
 				</View>
 			</View>
+			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
 		</SafeAreaView>
 	);
 };
@@ -91,7 +219,26 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: '#666',
 		lineHeight: 22,
-		marginBottom: 40,
+		marginBottom: 24,
+	},
+	progressContainer: {
+		marginBottom: 32,
+	},
+	progressText: {
+		fontSize: 14,
+		color: '#666',
+		marginBottom: 8,
+	},
+	progressBar: {
+		height: 6,
+		backgroundColor: '#e0e0e0',
+		borderRadius: 3,
+		overflow: 'hidden',
+	},
+	progressFill: {
+		height: '100%',
+		backgroundColor: '#4CAF50',
+		borderRadius: 3,
 	},
 	documentsContainer: {
 		gap: 16,
@@ -115,10 +262,25 @@ const styles = StyleSheet.create({
 		shadowRadius: 2,
 		elevation: 1,
 	},
+	documentButtonContent: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		flex: 1,
+	},
 	documentButtonText: {
 		fontSize: 18,
 		color: '#000',
 		fontWeight: '400',
+		flex: 1,
+	},
+	completedBadge: {
+		backgroundColor: '#4CAF50',
+		borderRadius: 12,
+		width: 24,
+		height: 24,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginLeft: 8,
 	},
 });
 

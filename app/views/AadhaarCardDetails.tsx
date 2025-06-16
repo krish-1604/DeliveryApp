@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -8,29 +8,91 @@ import {
 	Image,
 	Platform,
 	ScrollView,
+	Alert,
 } from 'react-native';
 import { ButtonHighlight } from '../components/button';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp, RootStackParamList } from '@/app/utils/types';
+import ErrorToast from '../components/error';
 
 type AadhaarRouteProp = RouteProp<RootStackParamList, 'Aadhaar'>;
+
+const DOCUMENTS_STATUS_KEY = 'documents_status';
+
+interface DocumentsStatus {
+	aadhaarCard: boolean;
+	panCard: boolean;
+	drivingLicense: boolean;
+}
 
 export default function AadhaarCardDetails() {
 	const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
 	const [backPhoto, setBackPhoto] = useState<string | null>(null);
+	const [errorMsg, setErrorMsg] = useState('');
+
+	const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus>({
+		aadhaarCard: false,
+		panCard: false,
+		drivingLicense: false,
+	});
 
 	const navigation = useNavigation<NavigationProp<'Aadhaar'>>();
 	const route = useRoute<AadhaarRouteProp>();
-	const { text } = route.params; // e.g., "Aadhaar Card"
+	const { text } = route.params;
+
+	// Load documents status on component mount
+	useEffect(() => {
+		loadDocumentsStatus();
+	}, []);
+
+	const loadDocumentsStatus = async () => {
+		try {
+			const savedStatus = await AsyncStorage.getItem(DOCUMENTS_STATUS_KEY);
+			if (savedStatus) {
+				const parsedStatus = JSON.parse(savedStatus);
+				setDocumentsStatus(parsedStatus);
+			}
+		} catch (error) {
+			// console.error('Error loading documents status:', error);
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while loading documents status.'
+			);
+		}
+	};
+
+	const saveDocumentsStatus = async (newStatus: DocumentsStatus) => {
+		try {
+			await AsyncStorage.setItem(DOCUMENTS_STATUS_KEY, JSON.stringify(newStatus));
+		} catch (error) {
+			// console.error('Error saving documents status:', error);
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while saving documents status.'
+			);
+		}
+	};
+
+	const getDocumentKey = (documentType: string): keyof DocumentsStatus => {
+		switch (documentType) {
+		case 'Aadhar Card':
+			return 'aadhaarCard';
+		case 'PAN Card':
+			return 'panCard';
+		case 'Driving License':
+			return 'drivingLicense';
+		default:
+			return 'aadhaarCard';
+		}
+	};
 
 	const handlePhotoUpload = async (
 		setPhoto: React.Dispatch<React.SetStateAction<string | null>>
 	) => {
 		const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 		if (!permissionResult.granted) {
-			alert('Camera access is required to upload photos.');
+			Alert.alert('Permission Required', 'Camera access is required to upload photos.');
 			return;
 		}
 		const result = await ImagePicker.launchCameraAsync({
@@ -48,11 +110,33 @@ export default function AadhaarCardDetails() {
 		setPhoto(null);
 	};
 
-	const handleContinue = () => {
+	const handleContinue = async () => {
 		if (frontPhoto && backPhoto) {
-			// navigation.navigate('NextScreen'); // Implement as needed
+			try {
+				// Update the documents status for the current document type
+				const documentKey = getDocumentKey(text);
+				const newStatus = {
+					...documentsStatus,
+					[documentKey]: true,
+				};
+
+				setDocumentsStatus(newStatus);
+				await saveDocumentsStatus(newStatus);
+
+				Alert.alert('Success', `${text} uploaded successfully!`, [
+					{
+						text: 'OK',
+						onPress: () => navigation.goBack(),
+					},
+				]);
+			} catch (error) {
+				Alert.alert(
+					'Error',
+					error instanceof Error ? error.message : 'An error occurred while saving the document.'
+				);
+			}
 		} else {
-			alert(`Please upload both front and back photos of your ${text}.`);
+			Alert.alert('Missing Photos', `Please upload both front and back photos of your ${text}.`);
 		}
 	};
 
@@ -94,8 +178,8 @@ export default function AadhaarCardDetails() {
 							frontPhoto ? handleReupload(setFrontPhoto) : handlePhotoUpload(setFrontPhoto)
 						}
 					>
-						<Text className="text-gray-800 mr-2">{frontPhoto ? 'Uploaded' : 'Take Photo'}</Text>
-						<Ionicons name={frontPhoto ? 'close-circle' : 'camera'} size={20} color="gray" />
+						<Text className="text-gray-800 mr-2">{frontPhoto ? 'Retake' : 'Take Photo'}</Text>
+						<Ionicons name={frontPhoto ? 'camera' : 'camera'} size={20} color="gray" />
 					</TouchableOpacity>
 				</View>
 
@@ -119,8 +203,8 @@ export default function AadhaarCardDetails() {
 							backPhoto ? handleReupload(setBackPhoto) : handlePhotoUpload(setBackPhoto)
 						}
 					>
-						<Text className="text-gray-800 mr-2">{backPhoto ? 'Uploaded' : 'Take Photo'}</Text>
-						<Ionicons name={backPhoto ? 'close-circle' : 'camera'} size={20} color="gray" />
+						<Text className="text-gray-800 mr-2">{backPhoto ? 'Retake' : 'Take Photo'}</Text>
+						<Ionicons name={backPhoto ? 'camera' : 'camera'} size={20} color="gray" />
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
@@ -135,6 +219,7 @@ export default function AadhaarCardDetails() {
 					<Text className="text-white font-semibold text-lg text-center">Continue</Text>
 				</ButtonHighlight>
 			</View>
+			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
 		</SafeAreaView>
 	);
 }

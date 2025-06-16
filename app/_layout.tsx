@@ -91,7 +91,7 @@ export default function RootLayout() {
 				<Stack.Screen name="PersonalInformation" component={PersonalInformationForm} />
 				<Stack.Screen name="Documents" component={DocumentsPage} />
 				<Stack.Screen name="Details" component={FinalDetailsPage} />
-				<Stack.Screen name="Registration" component={RegistrationPage} />
+				<Stack.Screen name="RegistrationCompleted" component={RegistrationPage} />
 				<Stack.Screen name="Vehicle" component={VehicleDetailsPage} />
 				<Stack.Screen name="Bank" component={BankDetailsPage} />
 				<Stack.Screen name="Emergency" component={EmergencyDetailsPage} />

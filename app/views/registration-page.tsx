@@ -1,41 +1,102 @@
-import { View, Text, ScrollView } from 'react-native';
-import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
 import VerificationSVG from '../assets/images/svgs/verification.svg';
 import VerificationListTile from '../components/verification-list-tile';
-import IconButton from '../components/icon-button';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../utils/types';
 
 export default function RegistrationPage() {
+	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+	const verificationData = [
+		{ name: 'Personal Information', isVerified: true },
+		{ name: 'Personal Documents', isVerified: true },
+		{ name: 'Vehicle Details', isVerified: true },
+		{ name: 'Bank Account Details', isVerified: true },
+		{ name: 'Emergency Details', isVerified: true },
+	];
+	const handleButtonPress = () => {
+		navigation.navigate('Orders');
+	};
+	const allVerified = useMemo(
+		() => verificationData.every((item) => item.isVerified),
+		[verificationData]
+	);
+
 	return (
-		<View className="h-full flex-col">
-			<View className="bg-primary h-[23%]">
-				<View className="flex-row justify-between px-5 py-8 bg-white rounded-b-3xl">
-					<IconButton name={'chevron-back'} onPress={() => {}} />
-					<Text className="text-2xl font-bold">Registration Completed</Text>
-					<View></View>
+		<View className="flex-1 bg-white">
+			<ScrollView
+				contentContainerStyle={{ paddingBottom: 120 }}
+				showsVerticalScrollIndicator={false}
+			>
+				{/* Header */}
+				<View className="bg-white rounded-b-3xl px-5 pt-12 pb-6 shadow-md z-10 relative">
+					<View className="items-center">
+						<Text className="text-xl font-semibold text-black">Registration Complete</Text>
+					</View>
+
+					<TouchableOpacity
+						onPress={() => navigation.goBack()}
+						className="absolute left-5 top-10 mt-2 ml-2 -translate-y-1/2 z-10"
+					>
+						<Ionicons name="chevron-back" size={24} color="black" />
+					</TouchableOpacity>
 				</View>
-				<View className="flex-row px-3 ">
-					<View className="flex-col flex-shrink py-5">
-						<Text className="text-white font-bold pb-2 text-2xl ">
-							Your application is under Verification
-						</Text>
-						<Text className="text-white ">Account will get activated in 48hrs</Text>
+
+				{/* Status Card */}
+				<View className="bg-primary mx-4 mt-4 rounded-2xl">
+					<View className="flex-row justify-between items-center px-6 py-6">
+						<View className="flex-1">
+							<Text className="text-white font-bold text-xl mb-2">
+								Your application is under{'\n'}Verification
+							</Text>
+							<Text className="text-white text-base">Account will get activated in 48hrs</Text>
+						</View>
+						<View className="ml-4">
+							<VerificationSVG width={80} height={80} />
+						</View>
 					</View>
-					{/* <VerificationImage /> */}
-					<View className="mt-4">
-						<VerificationSVG width={100} height={100} className="mt-10" />
-					</View>
+				</View>
+
+				{/* Verification List */}
+				<View className="px-4 mt-6">
+					{verificationData.map((item, index) => (
+						<VerificationListTile
+							key={index}
+							name={item.name}
+							onPress={() => {}}
+							isVerified={item.isVerified}
+						/>
+					))}
+				</View>
+			</ScrollView>
+
+			{/* Fixed Footer */}
+			<View className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-6 bg-white border-t border-gray-200">
+				<TouchableOpacity
+					className={`w-full py-4 rounded-xl ${allVerified ? 'bg-primary' : 'bg-gray-300'}`}
+					disabled={!allVerified}
+					onPress={() => {
+						if (allVerified) {
+							handleButtonPress();
+						}
+					}}
+				>
+					<Text className="text-center text-white font-semibold text-base">
+						{allVerified ? 'Let’s Start' : 'Please wait for verification'}
+					</Text>
+				</TouchableOpacity>
+
+				{/* Help line */}
+				<View className="flex-row justify-center items-center mt-4" style={{ paddingBottom: 34 }}>
+					<Text className="text-gray-600 text-base">Need Help? </Text>
+					<TouchableOpacity>
+						<Text className="text-orange-500 font-medium text-base underline">Contact Us</Text>
+					</TouchableOpacity>
 				</View>
 			</View>
-			<ScrollView className="flex-1 bg-white">
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={false} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={true} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={false} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={true} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={false} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={true} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={false} />
-				<VerificationListTile name="Email Verification" onPress={() => {}} isVerified={true} />
-			</ScrollView>
 		</View>
 	);
 }

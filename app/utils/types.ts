@@ -74,7 +74,7 @@ export type RootStackParamList = {
 	Phone: undefined;
 	Verify: { phoneNumber: string };
 	PersonalInformation: undefined;
-	Registration: undefined;
+	RegistrationCompleted: undefined;
 	Details: undefined;
 	Documents: undefined;
 	Vehicle: undefined;

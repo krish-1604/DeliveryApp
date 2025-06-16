@@ -29,6 +29,7 @@ const RegisterScreen = () => {
 		}
 
 		navigation.navigate('Verify', { phoneNumber: number });
+		// navigation.navigate('Details');
 	};
 
 	return (

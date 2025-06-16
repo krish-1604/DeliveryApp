@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -17,7 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
+import ErrorToast from '../components/error';
 
 interface FormData {
 	firstName: string;
@@ -38,6 +40,10 @@ interface DropdownItem {
 	label: string;
 	value: string;
 }
+
+const PERSONAL_INFO_KEY = 'personal_information';
+const COMPLETION_STATUS_KEY = 'document_completion_status';
+
 const PersonalInformationForm: React.FC = () => {
 	const [formData, setFormData] = useState<FormData>({
 		firstName: '',
@@ -59,6 +65,9 @@ const PersonalInformationForm: React.FC = () => {
 	const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [focusedField, setFocusedField] = useState<string | null>(null);
+	const [hasSavedData, setHasSavedData] = useState(false);
+	const [errorMsg, setErrorMsg] = useState('');
+
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
 
 	const languages: DropdownItem[] = [
@@ -86,6 +95,81 @@ const PersonalInformationForm: React.FC = () => {
 		{ label: 'O+', value: 'O+' },
 		{ label: 'O-', value: 'O-' },
 	];
+
+	// Load saved personal information on component mount
+	useEffect(() => {
+		loadPersonalInfo();
+	}, []);
+
+	const loadPersonalInfo = async () => {
+		try {
+			const savedInfo = await AsyncStorage.getItem(PERSONAL_INFO_KEY);
+			if (savedInfo) {
+				setHasSavedData(true);
+				const parsedInfo = JSON.parse(savedInfo);
+				setFormData(parsedInfo);
+
+				// If date of birth exists, set the selectedDate for date picker
+				if (parsedInfo.dateOfBirth) {
+					// Parse the date from DD - MM - YYYY format
+					const dateParts = parsedInfo.dateOfBirth.split(' - ');
+					if (dateParts.length === 3) {
+						const day = parseInt(dateParts[0]);
+						const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+						const year = parseInt(dateParts[2]);
+						setSelectedDate(new Date(year, month, day));
+					}
+				}
+			}
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while loading personal information.'
+			);
+			// console.error('Error loading personal information:', error);
+		}
+	};
+
+	const savePersonalInfo = async () => {
+		try {
+			await AsyncStorage.setItem(PERSONAL_INFO_KEY, JSON.stringify(formData));
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while saving personal information.'
+			);
+			// console.error('Error saving personal information:', error);
+		}
+	};
+
+	const updateCompletionStatus = async () => {
+		try {
+			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
+			let completionStatus = {
+				personalInformation: false,
+				personalDocuments: false,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+
+			if (savedStatus) {
+				completionStatus = JSON.parse(savedStatus);
+			}
+
+			completionStatus.personalInformation = true;
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while updating completion status.'
+			);
+			// console.error('Error updating completion status:', error);
+		}
+	};
 
 	const updateFormData = (field: keyof FormData, value: string | null) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
@@ -204,16 +288,27 @@ const PersonalInformationForm: React.FC = () => {
 		return true;
 	};
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (validateForm()) {
-			Alert.alert('Success', 'Form submitted successfully!', [
-				{
-					text: 'OK',
-					onPress: () => {
-						navigation.navigate('Details');
+			try {
+				await savePersonalInfo();
+				await updateCompletionStatus();
+				Alert.alert('Success', 'Personal information saved successfully!', [
+					{
+						text: 'OK',
+						onPress: () => {
+							navigation.navigate('Details');
+						},
 					},
-				},
-			]);
+				]);
+			} catch (error) {
+				setErrorMsg(
+					error instanceof Error
+						? error.message
+						: 'An error occurred while saving personal information.'
+				);
+				Alert.alert('Error', 'Failed to save personal information. Please try again.');
+			}
 		}
 	};
 
@@ -256,7 +351,14 @@ const PersonalInformationForm: React.FC = () => {
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
+			{hasSavedData && (
+				<TouchableOpacity
+					style={{ paddingHorizontal: 20, paddingTop: 20 }}
+					onPress={() => navigation.goBack()}
+				>
+					<Ionicons name="chevron-back" size={24} color="#003032" />
+				</TouchableOpacity>
+			)}
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				<View style={styles.header}>
 					<Text style={styles.title}>Personal Information</Text>
@@ -568,6 +670,7 @@ const PersonalInformationForm: React.FC = () => {
 					</View>
 				</View>
 			</Modal>
+			{errorMsg ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
 		</View>
 	);
 };

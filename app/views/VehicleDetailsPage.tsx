@@ -1,25 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ButtonOpacity } from '../components/button';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../components/input';
-import { useNavigation } from '@react-navigation/native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
+import ErrorToast from '../components/error';
+
+const VEHICLE_DETAILS_KEY = 'vehicle_details';
+const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 export default function VehicleDetailsPage() {
-	const navigation = useNavigation();
+	const navigation = useNavigation<NavigationProp<'Vehicle'>>();
 	const [isSaving, setIsSaving] = useState(false);
-	const handlePress = () => {
-		if (!isFormValid()) return;
+	const [errorMsg, setErrorMsg] = useState('');
 
-		setIsSaving(true);
-
-		// Simulate saving process
-		setTimeout(() => {
-			setIsSaving(false);
-			// Navigate to next page after successful save
-			navigation.replace('/regi');
-		}, 2000);
-	};
 	const [vehicleDetails, setVehicleDetails] = useState({
 		type: '',
 		model: '',
@@ -29,6 +24,64 @@ export default function VehicleDetailsPage() {
 		yearOfManufacture: '',
 	});
 
+	// Load saved vehicle details on component mount
+	useEffect(() => {
+		loadVehicleDetails();
+	}, []);
+
+	const loadVehicleDetails = async () => {
+		try {
+			const savedDetails = await AsyncStorage.getItem(VEHICLE_DETAILS_KEY);
+			if (savedDetails) {
+				const parsedDetails = JSON.parse(savedDetails);
+				setVehicleDetails(parsedDetails);
+			}
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while loading vehicle details.'
+			);
+			// console.error('Error loading vehicle details:', error);
+		}
+	};
+
+	const saveVehicleDetails = async () => {
+		try {
+			await AsyncStorage.setItem(VEHICLE_DETAILS_KEY, JSON.stringify(vehicleDetails));
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while saving vehicle details.'
+			);
+			// console.error('Error saving vehicle details:', error);
+		}
+	};
+
+	const updateCompletionStatus = async () => {
+		try {
+			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
+			let completionStatus = {
+				personalInformation: true,
+				personalDocuments: false,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+
+			if (savedStatus) {
+				completionStatus = JSON.parse(savedStatus);
+			}
+
+			completionStatus.vehicleDetails = true;
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while updating completion status.'
+			);
+			// console.error('Error updating completion status:', error);
+		}
+	};
+
 	const handleChange = (field: string, value: string) => {
 		setVehicleDetails((prevDetails) => ({
 			...prevDetails,
@@ -37,25 +90,52 @@ export default function VehicleDetailsPage() {
 	};
 
 	const isFormValid = () => {
-		return (
-			vehicleDetails.type &&
-			vehicleDetails.model &&
-			vehicleDetails.manufacturer &&
-			vehicleDetails.plateNumber
-		);
+		return Object.values(vehicleDetails).every((val) => val.trim() !== '');
 	};
+
+	const handleSave = async () => {
+		if (!isFormValid()) return;
+
+		setIsSaving(true);
+
+		try {
+			await saveVehicleDetails();
+			await updateCompletionStatus();
+
+			// Simulate save delay for better UX
+			setTimeout(() => {
+				setIsSaving(false);
+				Alert.alert('Success', 'Vehicle details saved successfully', [
+					{
+						text: 'OK',
+						onPress: () => navigation.navigate({ name: 'Details' } as never),
+					},
+				]);
+			}, 1500);
+		} catch (error) {
+			setIsSaving(false);
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while saving vehicle details.'
+			);
+			// Alert.alert('Error', 'Failed to save vehicle details. Please try again.');
+		}
+	};
+
+	const isButtonDisabled = !isFormValid() || isSaving;
 
 	return (
 		<View className="h-full flex-col bg-white">
 			{/* Header */}
-			<View className="bg-primary h-[15%] rounded-b-3xl">
-				<View className="flex-row px-6 pt-12 items-center">
-					<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-						<Ionicons name="arrow-back" size={24} color="white" />
+			<View className="bg-primary h-[15%] rounded-b-3xl justify-center relative">
+				<View className="flex-row items-center px-4 pt-12">
+					<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 z-10">
+						<Ionicons name="chevron-back" size={24} color="white" />
 					</TouchableOpacity>
-					<View className="flex-col flex-1">
-						<Text className="text-white font-bold pb-1 text-2xl">Vehicle Details</Text>
-						<Text className="text-white font-semibold text-sm">Enter your vehicle information</Text>
+					<View className="absolute left-0 right-0 items-center pt-12 px-6">
+						<Text className="text-white font-bold text-2xl">Vehicle Details</Text>
+						<Text className="text-white font-semibold text-sm mt-2 ml-1">
+							Enter your vehicle details
+						</Text>
 					</View>
 				</View>
 			</View>
@@ -68,7 +148,7 @@ export default function VehicleDetailsPage() {
 					<View style={{ height: 10 }} />
 					<Input
 						label="Vehicle Type"
-						placeholder="e.g., car, motorcycle, etc"
+						placeholder="e.g., Car, Motorcycle, Scooter"
 						value={vehicleDetails.type}
 						onChange={(value) => handleChange('type', value)}
 					/>
@@ -102,7 +182,7 @@ export default function VehicleDetailsPage() {
 						label="Plate Number"
 						placeholder="Enter plate number"
 						value={vehicleDetails.plateNumber}
-						onChange={(value) => handleChange('plateNumber', value)}
+						onChange={(value) => handleChange('plateNumber', value.toUpperCase())}
 					/>
 
 					<View style={{ height: 10 }} />
@@ -111,32 +191,32 @@ export default function VehicleDetailsPage() {
 						placeholder="Enter year of manufacture"
 						value={vehicleDetails.yearOfManufacture}
 						onChange={(value) => handleChange('yearOfManufacture', value)}
+						keyboardType="numeric"
 					/>
 				</View>
 
 				<View className="mb-100">
 					<ButtonOpacity
-						onPress={handlePress}
-						disabled={!isFormValid() || isSaving}
-						className={`${!isFormValid() || isSaving ? 'bg-gray-400' : 'bg-primary'} rounded-full px-6`}
+						onPress={handleSave}
+						disabled={isButtonDisabled}
+						className={`rounded-full px-6 py-3 items-center justify-center flex-row ${
+							isButtonDisabled ? 'bg-gray-400' : 'bg-primary'
+						}`}
 					>
-						<Text className="text-white font-medium text-xl py-2">
+						<Text
+							className={`font-medium text-xl ${isButtonDisabled ? 'text-gray-600' : 'text-white'}`}
+						>
 							{isSaving ? 'Saving...' : 'Save Details'}
 						</Text>
 						{isSaving && (
-							<View className="absolute right-4">
+							<View className="ml-2">
 								<ActivityIndicator color="white" />
 							</View>
-						)}{' '}
+						)}
 					</ButtonOpacity>
 				</View>
 			</ScrollView>
+			{errorMsg ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
 		</View>
 	);
-
-	// Update Button to use handlePress and show loading state
-	// Replace the ButtonOpacity in your return with:
-	// <View className="mb-8">
-	// 	<ButtonOpacity onPress={handlePress} disabled={!isFormValid() || isSaving}></ButtonOpacity>
-	// </View>;
 }
