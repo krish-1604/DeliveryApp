@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { OTPType } from '@/app/utils/types';
 import { OTPInput } from '@/app/components/input';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NavigationProp } from '@/app/utils/types';
 
 const VerifyScreen = () => {
@@ -19,6 +19,8 @@ const VerifyScreen = () => {
 	});
 
 	const navigation = useNavigation<NavigationProp<'Verify'>>();
+	const route = useRoute();
+	const phoneNumber = (route.params as { phoneNumber: string })?.phoneNumber || '';
 
 	function handlePress() {
 		const otpValues = Object.values(otp).join('');
@@ -43,7 +45,7 @@ const VerifyScreen = () => {
 
 			<View>
 				<Text className="text-text text-lg">
-					A 6 digit OTP has been sent to your phone number +91 9999988888.
+					A 6 digit OTP has been sent to your phone number +91 {phoneNumber}.
 					<Text className="text-primary font-semibold" onPress={() => navigation.goBack()}>
 						{' '}
 						Change

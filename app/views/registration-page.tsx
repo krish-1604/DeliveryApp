@@ -6,10 +6,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../utils/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ErrorToast from '../components/error';
 
 export default function RegistrationPage() {
 	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-
+	const [errorMsg, setErrorMsg] = React.useState('');
 	const verificationData = [
 		{ name: 'Personal Information', isVerified: true },
 		{ name: 'Personal Documents', isVerified: true },
@@ -17,8 +19,18 @@ export default function RegistrationPage() {
 		{ name: 'Bank Account Details', isVerified: true },
 		{ name: 'Emergency Details', isVerified: true },
 	];
-	const handleButtonPress = () => {
-		navigation.navigate('Orders');
+	const handleButtonPress = async () => {
+		try {
+			await AsyncStorage.setItem('isVerified', 'true');
+			navigation.navigate('Orders');
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while saving verification status.'
+			);
+			// console.error('Failed to save verification status:', error);
+		}
 	};
 	const allVerified = useMemo(
 		() => verificationData.every((item) => item.isVerified),
@@ -97,6 +109,7 @@ export default function RegistrationPage() {
 					</TouchableOpacity>
 				</View>
 			</View>
+			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
 		</View>
 	);
 }

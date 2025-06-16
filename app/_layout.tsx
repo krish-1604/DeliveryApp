@@ -57,14 +57,18 @@
 // 		</ThemeProvider>
 // 	);
 // }
-
+import React, { useEffect, useState } from 'react';
 import '../global.css';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaView, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Screens
 import AadhaarCardDetails from './views/AadhaarCardDetails';
 import LeaveSubmittedPage from './views/LeaveSubmittedPage';
 import OrdersScreen from './views/OrdersScreen';
 import AccountPage from './views/AccountPage';
 import BankDetailsPage from './views/BankDetailsPage';
-// import Background from './views/Background';
 import FinalDetailsPage from './views/details-page';
 import RegisterScreen from './views/register';
 import RegistrationPage from './views/registration-page';
@@ -72,18 +76,52 @@ import VehicleDetailsPage from './views/VehicleDetailsPage';
 import EmergencyDetailsPage from './views/EmergencyDetailsPage';
 import LeavePage from './views/LeavePage';
 import VerifyScreen from './views/verify';
-import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaView } from 'react-native';
 import Map from './views/MapGoBrrrrrrrrrrr';
 import PersonalInformationForm from './views/PersonalInformation';
 import DocumentsPage from './views/DocumentsPage';
+
 const Stack = createStackNavigator();
 
 export default function RootLayout() {
+	const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+	useEffect(() => {
+		const checkVerification = async () => {
+			try {
+				const isVerified = await AsyncStorage.getItem('isVerified');
+				if (isVerified === 'true') {
+					setInitialRoute('Orders');
+				} else {
+					setInitialRoute('Phone');
+				}
+			} catch {
+				// Fallback to 'Phone' route in case of storage error
+				setInitialRoute('Phone');
+			}
+		};
+
+		checkVerification();
+	}, []);
+
+	if (!initialRoute) {
+		return (
+			<SafeAreaView
+				style={{
+					flex: 1,
+					justifyContent: 'center',
+					alignItems: 'center',
+					backgroundColor: 'white',
+				}}
+			>
+				<ActivityIndicator size="large" color="#000" />
+			</SafeAreaView>
+		);
+	}
+
 	return (
 		<SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
 			<Stack.Navigator
-				initialRouteName="Phone"
+				initialRouteName={initialRoute}
 				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
 			>
 				<Stack.Screen name="Phone" component={RegisterScreen} />
