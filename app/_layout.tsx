@@ -59,9 +59,11 @@
 // }
 import React, { useEffect, useState } from 'react';
 import '../global.css';
-import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView, ActivityIndicator } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 // Screens
 import AadhaarCardDetails from './views/AadhaarCardDetails';
@@ -81,6 +83,30 @@ import PersonalInformationForm from './views/PersonalInformation';
 import DocumentsPage from './views/DocumentsPage';
 
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function MainTabs() {
+	return (
+		<Tab.Navigator
+			screenOptions={({ route }) => ({
+				headerShown: false,
+				tabBarActiveTintColor: '#facc15', // yellow
+				tabBarInactiveTintColor: 'gray',
+				tabBarIcon: ({ color, size }) => {
+					let iconName: keyof typeof Ionicons.glyphMap = 'home';
+
+					if (route.name === 'Orders') iconName = 'receipt-outline';
+					else if (route.name === 'Account') iconName = 'person-circle-outline';
+
+					return <Ionicons name={iconName} size={size} color={color} />;
+				},
+			})}
+		>
+			<Tab.Screen name="Orders" component={OrdersScreen} />
+			<Tab.Screen name="Account" component={AccountPage} />
+		</Tab.Navigator>
+	);
+}
 
 export default function RootLayout() {
 	const [initialRoute, setInitialRoute] = useState<string | null>(null);
@@ -90,12 +116,11 @@ export default function RootLayout() {
 			try {
 				const isVerified = await AsyncStorage.getItem('isVerified');
 				if (isVerified === 'true') {
-					setInitialRoute('Orders');
+					setInitialRoute('MainTabs');
 				} else {
 					setInitialRoute('Phone');
 				}
 			} catch {
-				// Fallback to 'Phone' route in case of storage error
 				setInitialRoute('Phone');
 			}
 		};
@@ -135,10 +160,9 @@ export default function RootLayout() {
 				<Stack.Screen name="Emergency" component={EmergencyDetailsPage} />
 				<Stack.Screen name="Aadhaar" component={AadhaarCardDetails} />
 				<Stack.Screen name="LeaveSubmitted" component={LeaveSubmittedPage} />
-				<Stack.Screen name="Orders" component={OrdersScreen} />
-				<Stack.Screen name="Account" component={AccountPage} />
 				<Stack.Screen name="Leave" component={LeavePage} />
 				<Stack.Screen name="Map" component={Map} />
+				<Stack.Screen name="MainTabs" component={MainTabs} />
 			</Stack.Navigator>
 		</SafeAreaView>
 	);

@@ -70,7 +70,7 @@ export default function OrdersScreen() {
 	);
 
 	return (
-		<View className="flex-1 bg-gray-50 p-5 pt-8">
+		<View className="flex-1 p-safe mt-4">
 			<View className="flex-row items-center justify-center mb-4">
 				<Ionicons name="bag-outline" size={24} className="mr-2" />
 				<Text className="text-2xl font-semibold">Orders</Text>
@@ -177,18 +177,6 @@ export default function OrdersScreen() {
 					))
 				)}
 			</ScrollView>
-
-			{/* Bottom Nav */}
-			<View className="absolute bottom-0 left-0 right-0 h-16 bg-white flex-row justify-around items-center border-t border-gray-200">
-				<TouchableOpacity className="items-center">
-					<Ionicons name="receipt-outline" size={24} className="text-yellow-500" />
-					<Text className="text-yellow-500 text-xs">Orders</Text>
-				</TouchableOpacity>
-				<TouchableOpacity className="items-center">
-					<Ionicons name="person-circle-outline" size={24} className="text-gray-500" />
-					<Text className="text-gray-500 text-xs">Account</Text>
-				</TouchableOpacity>
-			</View>
 		</View>
 	);
 }
