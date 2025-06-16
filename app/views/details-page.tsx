@@ -3,8 +3,14 @@ import React from 'react';
 // import VerificationListTile from '../components/verification-list-tile';
 import CheckedGotoListTile from '../components/gotoListTile';
 import { ButtonOpacity } from '../components/button';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@/app/utils/types';
 
 export default function FinalDetailsPage() {
+	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
+	const handlePress = () => {
+		navigation.navigate('Documents');
+	};
 	return (
 		<View className="h-full flex-col ">
 			<View className="bg-primary h-[19%] rounded-b-3xl">
@@ -23,7 +29,7 @@ export default function FinalDetailsPage() {
 				<View className="flex-col flex-shrink py-5 px-5">
 					<Text className="text-[#2B2E35] font-semibold pb-2 text-2xl ">Pending Documents</Text>
 				</View>
-				<CheckedGotoListTile name="Personal Documents" onPress={() => {}} />
+				<CheckedGotoListTile name="Personal Documents" onPress={handlePress} />
 				<CheckedGotoListTile name="Vehicle Details" onPress={() => {}} />
 				<CheckedGotoListTile name="Bank Account Details" onPress={() => {}} />
 				<CheckedGotoListTile name="Emergency Details" onPress={() => {}} />

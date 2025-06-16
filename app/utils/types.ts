@@ -1,3 +1,12 @@
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RouteProp } from '@react-navigation/native';
+import type React from 'react';
+
+//
+// -------------------------
+// Component Prop Types
+// -------------------------
+
 interface OTPType {
 	one: string;
 	two: string;
@@ -28,6 +37,14 @@ interface InputType {
 	placeholder?: string;
 	value: string;
 	onChange: (data: string) => void;
+	keyboardType?:
+		| 'default'
+		| 'number-pad'
+		| 'decimal-pad'
+		| 'numeric'
+		| 'email-address'
+		| 'phone-pad'
+		| 'url';
 }
 
 interface OTPInputType {
@@ -47,3 +64,33 @@ interface CheckBoxType {
 }
 
 export type { TextType, OTPType, ButtonType, InputType, OTPInputType, CheckBoxType };
+
+//
+// -------------------------
+// Navigation Types (React Navigation)
+// -------------------------
+
+export type RootStackParamList = {
+	Phone: undefined;
+	Verify: { phoneNumber: string };
+	PersonalInformation: undefined;
+	Registration: undefined;
+	Details: undefined;
+	Documents: undefined;
+	Vehicle: undefined;
+	Bank: undefined;
+	Emergency: undefined;
+	Aadhaar: { text: string };
+	LeaveSubmitted: undefined;
+	Orders: undefined;
+	Account: undefined;
+	Leave: undefined;
+	Map: undefined;
+};
+
+export type NavigationProp<T extends keyof RootStackParamList> = StackNavigationProp<
+	RootStackParamList,
+	T
+>;
+
+export type RouteProps<T extends keyof RootStackParamList> = RouteProp<RootStackParamList, T>;

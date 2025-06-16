@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { View, Text } from 'react-native';
 import { OTPType } from '@/app/utils/types';
 import { OTPInput } from '@/app/components/input';
-import { useNavigation } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@/app/utils/types';
 
-const verifyScreen = () => {
+const VerifyScreen = () => {
 	const [otp, setOtp] = useState<OTPType>({
 		one: '',
 		two: '',
@@ -16,20 +17,35 @@ const verifyScreen = () => {
 		five: '',
 		six: '',
 	});
-	const navigation = useNavigation();
+
+	const navigation = useNavigation<NavigationProp<'Verify'>>();
+
+	function handlePress() {
+		const otpValues = Object.values(otp).join('');
+		if (otpValues.length !== 6 || !/^\d{6}$/.test(otpValues)) {
+			alert('Please enter a valid 6-digit OTP');
+			return;
+		}
+		alert(`OTP ${otpValues} verified successfully!`);
+		navigation.navigate('PersonalInformation');
+	}
+
 	return (
 		<View className="px-5 flex mt-10 gap-5">
 			<ButtonOpacity
 				className="!bg-transparent !w-10 !h-10 active:bg-slate-200 !p-5"
-				onPress={() => {}}
+				onPress={() => navigation.goBack()}
 			>
 				<Ionicons name="chevron-back" size={24} color="black" />
 			</ButtonOpacity>
+
 			<Heading text="Enter OTP to verify" />
+
 			<View>
 				<Text className="text-text text-lg">
 					A 6 digit OTP has been sent to your phone number +91 9999988888.
 					<Text className="text-primary font-semibold" onPress={() => navigation.goBack()}>
+						{' '}
 						Change
 					</Text>
 				</Text>
@@ -42,17 +58,6 @@ const verifyScreen = () => {
 			</ButtonHighlight>
 		</View>
 	);
-
-	function handlePress() {
-		const otpValues = Object.values(otp).join('');
-		if (otpValues.length !== 6 || !/^\d{6}$/.test(otpValues)) {
-			alert('Please enter a valid 6-digit OTP');
-			return;
-		}
-		// make api call , if call returned rejected, alert and return
-		// if call returned resolved, navigate to next screen
-		alert(`OTP ${otpValues} verified successfully!`);
-		navigation.navigate('/regi');
-	}
 };
-export default verifyScreen;
+
+export default VerifyScreen;

@@ -18,6 +18,7 @@ const Input = ({
 	placeholder = 'Enter a value',
 	value,
 	onChange,
+	keyboardType = 'default',
 }: InputType) => {
 	const handleChange = (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
 		if (e.nativeEvent.text === '') {
@@ -46,6 +47,7 @@ const Input = ({
 				placeholder={placeholder}
 				value={value}
 				onChange={handleChange}
+				keyboardType={keyboardType}
 			/>
 		</View>
 	);

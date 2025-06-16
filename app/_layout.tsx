@@ -65,8 +65,7 @@ import OrdersScreen from './views/OrdersScreen';
 import AccountPage from './views/AccountPage';
 import BankDetailsPage from './views/BankDetailsPage';
 // import Background from './views/Background';
-import DocumentPage from './views/document-page';
-import FinalDetailsPage from './views/backup-details-page';
+import FinalDetailsPage from './views/details-page';
 import RegisterScreen from './views/register';
 import RegistrationPage from './views/registration-page';
 import VehicleDetailsPage from './views/VehicleDetailsPage';
@@ -76,29 +75,32 @@ import VerifyScreen from './views/verify';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native';
 import Map from './views/MapGoBrrrrrrrrrrr';
+import PersonalInformationForm from './views/PersonalInformation';
+import DocumentsPage from './views/DocumentsPage';
 const Stack = createStackNavigator();
 
 export default function RootLayout() {
 	return (
-		<SafeAreaView style={{ flex: 1 }}>
+		<SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
 			<Stack.Navigator
-				initialRouteName="/map"
+				initialRouteName="Phone"
 				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
 			>
-				<Stack.Screen name="/reg/verify" component={VerifyScreen} />
-				<Stack.Screen name="/reg" component={RegisterScreen} />
-				<Stack.Screen name="/doc" component={DocumentPage} />
-				<Stack.Screen name="/regi" component={RegistrationPage} />
-				<Stack.Screen name="/final" component={FinalDetailsPage} />
-				<Stack.Screen name="/vehicle" component={VehicleDetailsPage} />
-				<Stack.Screen name="/bank" component={BankDetailsPage} />
-				<Stack.Screen name="/emergency" component={EmergencyDetailsPage} />
-				<Stack.Screen name="/aadhaar" component={AadhaarCardDetails} />
-				<Stack.Screen name="/leave-submitted" component={LeaveSubmittedPage} />
-				<Stack.Screen name="/orders" component={OrdersScreen} />
-				<Stack.Screen name="/account" component={AccountPage} />
-				<Stack.Screen name="/leave" component={LeavePage} />
-				<Stack.Screen name="/map" component={Map} />
+				<Stack.Screen name="Phone" component={RegisterScreen} />
+				<Stack.Screen name="Verify" component={VerifyScreen} />
+				<Stack.Screen name="PersonalInformation" component={PersonalInformationForm} />
+				<Stack.Screen name="Documents" component={DocumentsPage} />
+				<Stack.Screen name="Details" component={FinalDetailsPage} />
+				<Stack.Screen name="Registration" component={RegistrationPage} />
+				<Stack.Screen name="Vehicle" component={VehicleDetailsPage} />
+				<Stack.Screen name="Bank" component={BankDetailsPage} />
+				<Stack.Screen name="Emergency" component={EmergencyDetailsPage} />
+				<Stack.Screen name="Aadhaar" component={AadhaarCardDetails} />
+				<Stack.Screen name="LeaveSubmitted" component={LeaveSubmittedPage} />
+				<Stack.Screen name="Orders" component={OrdersScreen} />
+				<Stack.Screen name="Account" component={AccountPage} />
+				<Stack.Screen name="Leave" component={LeavePage} />
+				<Stack.Screen name="Map" component={Map} />
 			</Stack.Navigator>
 		</SafeAreaView>
 	);
