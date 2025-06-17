@@ -163,6 +163,7 @@ export default function RootLayout() {
 				<Stack.Screen name="Leave" component={LeavePage} />
 				<Stack.Screen name="Map" component={Map} />
 				<Stack.Screen name="MainTabs" component={MainTabs} />
+				<Stack.Screen name="Ordersr" component={OrdersScreen} />
 			</Stack.Navigator>
 		</SafeAreaView>
 	);
