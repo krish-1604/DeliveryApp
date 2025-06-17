@@ -90,13 +90,13 @@ function MainTabs() {
 		<Tab.Navigator
 			screenOptions={({ route }) => ({
 				headerShown: false,
-				tabBarActiveTintColor: '#facc15', // yellow
+				tabBarActiveTintColor: '#FAA41A', // yellow
 				tabBarInactiveTintColor: 'gray',
 				tabBarIcon: ({ color, size }) => {
 					let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-					if (route.name === 'Orders') iconName = 'receipt-outline';
-					else if (route.name === 'Account') iconName = 'person-circle-outline';
+					if (route.name === 'Orders') iconName = 'bag';
+					else if (route.name === 'Account') iconName = 'person';
 
 					return <Ionicons name={iconName} size={size} color={color} />;
 				},
@@ -160,7 +160,7 @@ export default function RootLayout() {
 				<Stack.Screen name="Emergency" component={EmergencyDetailsPage} />
 				<Stack.Screen name="Aadhaar" component={AadhaarCardDetails} />
 				<Stack.Screen name="LeaveSubmitted" component={LeaveSubmittedPage} />
-				<Stack.Screen name="Leave" component={LeavePage} />
+				<Stack.Screen name="Ask For Leave" component={LeavePage} />
 				<Stack.Screen name="Map" component={Map} />
 				<Stack.Screen name="MainTabs" component={MainTabs} />
 				<Stack.Screen name="Orders" component={OrdersScreen} />

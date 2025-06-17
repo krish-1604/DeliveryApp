@@ -1,24 +1,56 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '../utils/types';
 export default function AccountPage() {
+	const navigation = useNavigation<NavigationProp<'Account'>>();
+
+	const handleMenuPress = (title: string) => {
+		switch (title) {
+		case 'Edit Profile':
+		case 'Allotted Area':
+		case 'Support':
+		case 'FAQ':
+		case 'Terms and Conditions':
+		case 'Privacy Policy':
+		case 'Ask For Leave':
+			// console.log(`Navigate to ${title}`);
+			navigation.navigate(title);
+			break;
+		case 'Log Out':
+			// console.log('Handle Log Out');
+			break;
+		}
+	};
+
+	const menuItems = [
+		{ title: 'Edit Profile', icon: 'person-outline' },
+		{ title: 'Allotted Area', icon: 'location-outline' },
+		{ title: 'Support', icon: 'headset-outline' },
+		{ title: 'FAQ', icon: 'help-circle-outline' },
+		{ title: 'Terms and Conditions', icon: 'document-text-outline' },
+		{ title: 'Privacy Policy', icon: 'shield-checkmark-outline' },
+		{ title: 'Ask For Leave', icon: 'mail-outline' },
+		{ title: 'Log Out', icon: 'log-out-outline' },
+	];
+
 	return (
-		<View className="flex-1 mt-4 p-safe">
-			<View className="flex-row items-center justify-center mb-4">
+		<SafeAreaView style={{ paddingTop: 30 }} className="flex-1 px-4">
+			{/* Header */}
+			<View className="flex-row items-center justify-center mb-6">
 				<Ionicons name="person-circle-outline" size={24} className="mr-2" />
-				<Text className="text-2xl font-semibold">Account</Text>
+				<Text className="text-2xl font-semibold text-black">Account</Text>
 			</View>
-			<View className="bg-white rounded-xl p-4 mb-6 flex-row items-center">
-				<View className="mr-4">
-					<Image
-						source={{
-							uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBIcthqV0b6PKEn8GV0mX8nw8dpbQOkKOUWg&s',
-						}}
-						className="w-16 h-16 rounded-full"
-						alt="IEEE Logo"
-					/>
-				</View>
+
+			{/* Profile Box */}
+			<View className="bg-white rounded-xl px-4 py-5 mb-6 flex-row items-center">
+				<Image
+					source={{
+						uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBIcthqV0b6PKEn8GV0mX8nw8dpbQOkKOUWg&s',
+					}}
+					className="w-16 h-16 rounded-full mr-4"
+				/>
 				<View className="flex-1">
 					<View className="flex-row items-center mb-1">
 						<Ionicons name="person-outline" size={16} className="text-gray-600 mr-2" />
@@ -28,52 +60,56 @@ export default function AccountPage() {
 						<Ionicons name="call-outline" size={16} className="text-gray-600 mr-2" />
 						<Text className="text-gray-800">+91 9999988888</Text>
 					</View>
-					<View className="flex-row items-center">
-						<Ionicons name="mail-outline" size={16} className="text-gray-600 mr-2" />
-						<Text className="text-gray-800">ieecs@vit.ac.in</Text>
-					</View>
 				</View>
 			</View>
+
+			{/* Options Title */}
 			<View className="flex-row items-center justify-between mb-4">
-				<Text className="text-xl font-semibold">Options</Text>
+				<Text className="text-xl font-semibold text-black">Options</Text>
 				<View className="flex-row items-center">
-					<Text className="font-bold mr-1">4.9</Text>
+					<Text className="font-bold mr-1 text-black">4.9</Text>
 					<Ionicons name="star" size={16} className="text-yellow-500" />
 				</View>
 			</View>
+
+			{/* Menu Items */}
 			<View className="bg-white rounded-xl overflow-hidden">
-				<MenuItem icon={<Ionicons name="person-outline" size={20} />} title="Edit Profile" />
-				<Divider />
-				<MenuItem icon={<Ionicons name="location-outline" size={20} />} title="Allotted Area" />
-				<Divider />
-				<MenuItem icon={<Ionicons name="headset-outline" size={20} />} title="Support" />
-				<Divider />
-				<MenuItem icon={<Ionicons name="help-circle-outline" size={20} />} title="FAQ" />
-				<Divider />
-				<MenuItem
-					icon={<Ionicons name="document-text-outline" size={20} />}
-					title="Terms and Conditions"
-				/>
-				<Divider />
-				<MenuItem
-					icon={<Ionicons name="shield-checkmark-outline" size={20} />}
-					title="Privacy Policy"
-				/>
-				<Divider />
-				<MenuItem icon={<Ionicons name="mail-outline" size={20} />} title="Ask For Leave" />
-				<Divider />
-				<MenuItem icon={<Ionicons name="log-out-outline" size={20} />} title="Log Out" />
+				{menuItems.map((item, index) => (
+					<View key={item.title}>
+						<MenuItem
+							title={item.title}
+							icon={
+								<Ionicons
+									name={item.icon as React.ComponentProps<typeof Ionicons>['name']}
+									size={20}
+								/>
+							}
+							onPress={() => handleMenuPress(item.title)}
+						/>
+						{index < menuItems.length - 1 && <Divider />}
+					</View>
+				))}
 			</View>
+
+			{/* Version */}
 			<View className="items-center mt-8">
 				<Text className="text-gray-400 text-sm">App Version 1.0.0 (30)</Text>
 			</View>
-		</View>
+		</SafeAreaView>
 	);
 }
 
-function MenuItem({ icon, title }: { icon: React.ReactNode; title: string }) {
+function MenuItem({
+	icon,
+	title,
+	onPress,
+}: {
+	icon: React.ReactNode;
+	title: string;
+	onPress: () => void;
+}) {
 	return (
-		<TouchableOpacity className="flex-row items-center justify-between p-4">
+		<TouchableOpacity className="flex-row items-center justify-between p-4" onPress={onPress}>
 			<View className="flex-row items-center">
 				<View className="text-gray-600 mr-4">{icon}</View>
 				<Text className="text-gray-800">{title}</Text>

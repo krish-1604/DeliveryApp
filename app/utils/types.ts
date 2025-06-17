@@ -2,12 +2,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RouteProp } from '@react-navigation/native';
 import type React from 'react';
 
-//
-// -------------------------
-// Component Prop Types
-// -------------------------
-
-interface OTPType {
+export interface OTPType {
 	one: string;
 	two: string;
 	three: string;
@@ -16,20 +11,20 @@ interface OTPType {
 	six: string;
 }
 
-interface TextType {
+export interface TextType {
 	className?: string;
 	text: string;
 	children?: React.ReactNode;
 }
 
-interface ButtonType {
+export interface ButtonType {
 	className?: string;
 	disabled?: boolean;
 	onPress: () => void;
 	children: React.ReactNode;
 }
 
-interface InputType {
+export interface InputType {
 	type?: 'string' | 'number';
 	limit?: number | null;
 	className?: string;
@@ -47,7 +42,7 @@ interface InputType {
 		| 'url';
 }
 
-interface OTPInputType {
+export interface OTPInputType {
 	className?: string;
 	label?: string;
 	placeholder?: string;
@@ -55,7 +50,7 @@ interface OTPInputType {
 	onChange: (value: string, key: keyof OTPType) => void;
 }
 
-interface CheckBoxType {
+export interface CheckBoxType {
 	checked?: boolean;
 	onClick: () => void;
 	boxOutlineColor?: string | null;
@@ -63,12 +58,7 @@ interface CheckBoxType {
 	children?: React.ReactNode;
 }
 
-export type { TextType, OTPType, ButtonType, InputType, OTPInputType, CheckBoxType };
-
-//
-// -------------------------
-// Navigation Types (React Navigation)
-// -------------------------
+// Navigation types
 
 export type RootStackParamList = {
 	Phone: undefined;
@@ -86,6 +76,15 @@ export type RootStackParamList = {
 	Account: undefined;
 	Leave: undefined;
 	Map: undefined;
+
+	// Account-specific screens
+	'Edit Profile': undefined;
+	'Allotted Area': undefined;
+	Support: undefined;
+	FAQ: undefined;
+	'Terms and Conditions': undefined;
+	'Privacy Policy': undefined;
+	'Ask For Leave': undefined;
 };
 
 export type NavigationProp<T extends keyof RootStackParamList> = StackNavigationProp<
@@ -94,3 +93,6 @@ export type NavigationProp<T extends keyof RootStackParamList> = StackNavigation
 >;
 
 export type RouteProps<T extends keyof RootStackParamList> = RouteProp<RootStackParamList, T>;
+
+// Add this to support menu logic
+export type MenuRoute = keyof RootStackParamList | 'Log Out';

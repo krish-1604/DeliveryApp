@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Dummy orders split by type
@@ -70,7 +70,7 @@ export default function OrdersScreen() {
 	);
 
 	return (
-		<View className="flex-1 p-safe mt-4">
+		<SafeAreaView style={{ paddingTop: 30 }} className="flex-1 px-4">
 			<View className="flex-row items-center justify-center mb-4">
 				<Ionicons name="bag-outline" size={24} className="mr-2" />
 				<Text className="text-2xl font-semibold">Orders</Text>
@@ -177,7 +177,7 @@ export default function OrdersScreen() {
 					))
 				)}
 			</ScrollView>
-		</View>
+		</SafeAreaView>
 	);
 }
 
