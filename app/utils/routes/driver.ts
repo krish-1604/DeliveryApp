@@ -151,7 +151,21 @@ export class DriverAPI {
 		});
 		return response.data;
 	}
-
+	async submitPersonalInformation(personalData: {
+		phoneNumber: string;
+		firstName: string;
+		lastName: string;
+		fatherName: string;
+		dateOfBirth: string;
+		whatsappNumber?: string;
+		secondaryNumber?: string;
+		address: string;
+		language: string;
+		bloodGroup: string;
+	}): Promise<ApiResponse> {
+		const response: AxiosResponse = await this.api.post('/api/auth/personal-info', personalData);
+		return response.data;
+	}
 	async verifyOTP(phoneNumber: string, code: string): Promise<{
 	success: boolean;
 	message: string;
