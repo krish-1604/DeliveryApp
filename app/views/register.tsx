@@ -8,16 +8,20 @@ import { useState } from 'react';
 import { Text, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@/app/utils/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DriverAPI } from '@/app/utils/routes/driver'; // adjust import path if needed
+
 const RegisterScreen = () => {
 	const navigation = useNavigation<NavigationProp<'Phone'>>();
 	const [checked, setChecked] = useState(false);
 	const [number, setNumber] = useState('');
+	const [loading, setLoading] = useState(false);
 
 	const handleCheckboxPress = () => {
 		setChecked((prev) => !prev);
 	};
 
-	const handlePress = () => {
+	const handlePress = async () => {
 		if (number.length !== 10 || !/^\d{10}$/.test(number)) {
 			Alert.alert('Error', 'Please enter a valid 10-digit mobile number');
 			return;
@@ -28,8 +32,22 @@ const RegisterScreen = () => {
 			return;
 		}
 
-		navigation.navigate('Verify', { phoneNumber: number });
-		// navigation.navigate('Details');
+		try {
+			setLoading(true);
+			const api = new DriverAPI();
+			const response = await api.sendOTP(number);
+
+			if (response.success) {
+				await AsyncStorage.setItem('phoneNumber', number);
+				navigation.navigate('Verify');
+			} else {
+				Alert.alert('Failed', response.message || 'Failed to send OTP');
+			}
+		} catch (error) {
+			Alert.alert('Error', 'Something went wrong while sending OTP');
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	return (
@@ -43,7 +61,7 @@ const RegisterScreen = () => {
 					placeholder="e.g. 9999988888"
 					value={number}
 					keyboardType="numeric"
-					onChange={(data) => setNumber(data)}
+					onChange={setNumber}
 					className="w-full h-12 outline-secondary border-primary border px-5 mt-2 rounded-lg"
 				/>
 
@@ -60,8 +78,11 @@ const RegisterScreen = () => {
 					</Text>
 				</CheckBox>
 
-				<ButtonHighlight onPress={handlePress} className="w-full h-12 mt-4">
-					<Body className="text-center !text-white !font-semibold" text="Send OTP" />
+				<ButtonHighlight onPress={handlePress} className="w-full h-12 mt-4" disabled={loading}>
+					<Body
+						className="text-center !text-white !font-semibold"
+						text={loading ? 'Sending...' : 'Send OTP'}
+					/>
 				</ButtonHighlight>
 			</View>
 		</View>

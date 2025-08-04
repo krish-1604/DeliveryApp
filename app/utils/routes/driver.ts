@@ -144,9 +144,10 @@ export class DriverAPI {
 		return response.data;
 	}
 
-	async sendOTP(phoneNumber: string): Promise<ApiResponse> {
+		async sendOTP(phoneNumber: string): Promise<ApiResponse> {
+		const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 		const response: AxiosResponse = await this.api.post('/api/auth/send-otp', {
-			phoneNumber,
+			phoneNumber: formatted,
 		});
 		return response.data;
 	}

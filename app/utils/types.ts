@@ -62,7 +62,7 @@ export interface CheckBoxType {
 
 export type RootStackParamList = {
 	Phone: undefined;
-	Verify: { phoneNumber: string };
+	Verify: undefined;
 	PersonalInformation: undefined;
 	RegistrationCompleted: undefined;
 	Details: undefined;
