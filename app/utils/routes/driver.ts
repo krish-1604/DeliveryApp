@@ -152,13 +152,27 @@ export class DriverAPI {
 		return response.data;
 	}
 
-	async verifyOTP(phoneNumber: string, code: string): Promise<ApiResponse<{ driverId: string }>> {
-		const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
-			phoneNumber,
-			code,
-		});
-		return response.data;
-	}
+	async verifyOTP(phoneNumber: string, code: string): Promise<{
+	success: boolean;
+	message: string;
+	userExists: boolean;
+	isCompletelyVerified: boolean;
+	token: string;
+	driver: {
+		id: string;
+		phoneNumber: string;
+		firstName: string;
+		lastName: string;
+		profilePicture: string | null;
+	};
+}> {
+	const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
+		phoneNumber,
+		code,
+	});
+	return response.data;
+}
+
 
 	async adminLogin(
 		email: string,
