@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp, OTPType } from '@/app/utils/types';
 import { DriverAPI } from '@/app/utils/routes/driver';
+import { AxiosError } from 'axios';
 
 const VerifyScreen = () => {
 	const [otp, setOtp] = useState<OTPType>({
@@ -61,13 +62,14 @@ const VerifyScreen = () => {
 		} else {
 			Alert.alert('Verification Failed', response.message || 'Invalid OTP');
 		}
-	} catch (err: any) {
-		if (err.response?.status === 400) {
-			Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
-		} else {
-			Alert.alert('Error', 'Something went wrong while verifying OTP');
-		}
-	} finally {
+	} catch (err: unknown) {
+	if ((err as AxiosError)?.response?.status === 400) {
+		Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
+	} else {
+		Alert.alert('Error', 'Something went wrong while verifying OTP');
+	}
+}
+ finally {
 		setVerifying(false);
 	}
 };

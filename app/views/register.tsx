@@ -43,7 +43,7 @@ const RegisterScreen = () => {
 			} else {
 				Alert.alert('Failed', response.message || 'Failed to send OTP');
 			}
-		} catch (error) {
+		} catch {
 			Alert.alert('Error', 'Something went wrong while sending OTP');
 		} finally {
 			setLoading(false);
