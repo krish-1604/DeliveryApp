@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
+import { DriverAPI } from '@/app/utils/routes/driver'; // Update this import path
 
 interface FormData {
 	firstName: string;
@@ -40,9 +41,6 @@ interface DropdownItem {
 	label: string;
 	value: string;
 }
-
-const PERSONAL_INFO_KEY = 'personal_information';
-const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 const PersonalInformationForm: React.FC = () => {
 	const [formData, setFormData] = useState<FormData>({
@@ -65,10 +63,11 @@ const PersonalInformationForm: React.FC = () => {
 	const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [focusedField, setFocusedField] = useState<string | null>(null);
-	const [hasSavedData, setHasSavedData] = useState(false);
 	const [errorMsg, setErrorMsg] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
+	const driverAPI = new DriverAPI();
 
 	const languages: DropdownItem[] = [
 		{ label: 'English', value: 'english' },
@@ -96,78 +95,26 @@ const PersonalInformationForm: React.FC = () => {
 		{ label: 'O-', value: 'O-' },
 	];
 
-	// Load saved personal information on component mount
 	useEffect(() => {
-		loadPersonalInfo();
+		setupAPIAuth();
 	}, []);
 
-	const loadPersonalInfo = async () => {
+	const setupAPIAuth = async () => {
 		try {
-			const savedInfo = await AsyncStorage.getItem(PERSONAL_INFO_KEY);
-			if (savedInfo) {
-				setHasSavedData(true);
-				const parsedInfo = JSON.parse(savedInfo);
-				setFormData(parsedInfo);
+			// Get stored auth token and driver info
+			const token = await AsyncStorage.getItem('auth_token');
+			const driverId = await AsyncStorage.getItem('driver_id');
+			const phoneNumber = await AsyncStorage.getItem('phone_number');
 
-				// If date of birth exists, set the selectedDate for date picker
-				if (parsedInfo.dateOfBirth) {
-					// Parse the date from DD - MM - YYYY format
-					const dateParts = parsedInfo.dateOfBirth.split(' - ');
-					if (dateParts.length === 3) {
-						const day = parseInt(dateParts[0]);
-						const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
-						const year = parseInt(dateParts[2]);
-						setSelectedDate(new Date(year, month, day));
-					}
-				}
-			}
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error
-					? error.message
-					: 'An error occurred while loading personal information.'
-			);
-			// console.error('Error loading personal information:', error);
-		}
-	};
-
-	const savePersonalInfo = async () => {
-		try {
-			await AsyncStorage.setItem(PERSONAL_INFO_KEY, JSON.stringify(formData));
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error
-					? error.message
-					: 'An error occurred while saving personal information.'
-			);
-			// console.error('Error saving personal information:', error);
-		}
-	};
-
-	const updateCompletionStatus = async () => {
-		try {
-			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
-			let completionStatus = {
-				personalInformation: false,
-				personalDocuments: false,
-				vehicleDetails: false,
-				bankDetails: false,
-				emergencyDetails: false,
-			};
-
-			if (savedStatus) {
-				completionStatus = JSON.parse(savedStatus);
+			if (token) {
+				driverAPI.setBearer(token);
 			}
 
-			completionStatus.personalInformation = true;
-			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			if (driverId && phoneNumber) {
+				driverAPI.setDriverHeaders(driverId, phoneNumber);
+			}
 		} catch (error) {
-			setErrorMsg(
-				error instanceof Error
-					? error.message
-					: 'An error occurred while updating completion status.'
-			);
-			// console.error('Error updating completion status:', error);
+			console.error('Error setting up API auth:', error);
 		}
 	};
 
@@ -197,7 +144,7 @@ const PersonalInformationForm: React.FC = () => {
 			}
 
 			setSelectedDate(date);
-			const formattedDate = `${date.getDate().toString().padStart(2, '0')} - ${(date.getMonth() + 1).toString().padStart(2, '0')} - ${date.getFullYear()}`;
+			const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 			updateFormData('dateOfBirth', formattedDate);
 		}
 	};
@@ -288,12 +235,88 @@ const PersonalInformationForm: React.FC = () => {
 		return true;
 	};
 
+	const submitToAPI = async (): Promise<boolean> => {
+		try {
+			setIsSubmitting(true);
+
+			// Format phone number - ensure it starts with +91
+			const formatPhoneNumber = (phone: string) => {
+				const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
+				if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
+					return `+${cleanPhone}`;
+				} else if (cleanPhone.length === 10) {
+					return `+91${cleanPhone}`;
+				}
+				return `+91${cleanPhone}`;
+			};
+
+			// Prepare data for API
+			const apiData = {
+				phoneNumber: formatPhoneNumber(formData.primaryMobile),
+				firstName: formData.firstName.trim(),
+				lastName: formData.lastName.trim(),
+				fatherName: formData.fatherName.trim(),
+				dateOfBirth: formData.dateOfBirth,
+				whatsappNumber: formData.whatsappNumber ? formatPhoneNumber(formData.whatsappNumber) : undefined,
+				secondaryNumber: formData.secondaryMobile ? formatPhoneNumber(formData.secondaryMobile) : undefined,
+				address: formData.address.trim(),
+				language: formData.languages.join(','), // Convert array to comma-separated string
+				bloodGroup: formData.bloodGroup,
+			};
+
+			// Log the data being sent for debugging
+			console.log('Submitting API data:', JSON.stringify(apiData, null, 2));
+
+			const response = await driverAPI.submitPersonalInformation(apiData);
+
+			console.log('API response:', response);
+
+			if (response.success) {
+				return true;
+			} else {
+				console.error('API returned error:', response);
+				setErrorMsg(response.message || response.error || 'Failed to submit personal information');
+				return false;
+			}
+		} catch (error: any) {
+			console.error('API submission error:', error);
+			
+			// More detailed error logging
+			if (error.response) {
+				console.error('Error response data:', error.response.data);
+				console.error('Error response status:', error.response.status);
+				console.error('Error response headers:', error.response.headers);
+				
+				// Try to extract meaningful error message from response
+				const errorMessage = error.response.data?.message || 
+								   error.response.data?.error || 
+								   error.response.data?.details ||
+								   `Server error: ${error.response.status}`;
+				setErrorMsg(errorMessage);
+			} else if (error.request) {
+				console.error('No response received:', error.request);
+				setErrorMsg('No response from server. Please check your internet connection.');
+			} else {
+				console.error('Error setting up request:', error.message);
+				setErrorMsg(error.message || 'Network error. Please try again.');
+			}
+			return false;
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
 	const handleSubmit = async () => {
-		if (validateForm()) {
-			try {
-				await savePersonalInfo();
-				await updateCompletionStatus();
-				Alert.alert('Success', 'Personal information saved successfully!', [
+		if (!validateForm()) {
+			return;
+		}
+
+		try {
+			// Submit to API
+			const apiSuccess = await submitToAPI();
+			
+			if (apiSuccess) {
+				Alert.alert('Success', 'Personal information submitted successfully!', [
 					{
 						text: 'OK',
 						onPress: () => {
@@ -301,14 +324,16 @@ const PersonalInformationForm: React.FC = () => {
 						},
 					},
 				]);
-			} catch (error) {
-				setErrorMsg(
-					error instanceof Error
-						? error.message
-						: 'An error occurred while saving personal information.'
-				);
-				Alert.alert('Error', 'Failed to save personal information. Please try again.');
+			} else {
+				Alert.alert('Error', 'Failed to submit personal information. Please try again.');
 			}
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error
+					? error.message
+					: 'An error occurred while submitting personal information.'
+			);
+			Alert.alert('Error', 'Failed to submit personal information. Please try again.');
 		}
 	};
 
@@ -351,14 +376,12 @@ const PersonalInformationForm: React.FC = () => {
 	return (
 		<View style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
-			{hasSavedData && (
-				<TouchableOpacity
-					style={{ paddingHorizontal: 20, paddingTop: 20 }}
-					onPress={() => navigation.goBack()}
-				>
-					<Ionicons name="chevron-back" size={24} color="#003032" />
-				</TouchableOpacity>
-			)}
+			<TouchableOpacity
+				style={{ paddingHorizontal: 20, paddingTop: 20 }}
+				onPress={() => navigation.goBack()}
+			>
+				<Ionicons name="chevron-back" size={24} color="#003032" />
+			</TouchableOpacity>
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				<View style={styles.header}>
 					<Text style={styles.title}>Personal Information</Text>
@@ -379,6 +402,7 @@ const PersonalInformationForm: React.FC = () => {
 							onFocus={() => setFocusedField('firstName')}
 							onBlur={() => setFocusedField(null)}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -393,6 +417,7 @@ const PersonalInformationForm: React.FC = () => {
 							onFocus={() => setFocusedField('lastName')}
 							onBlur={() => setFocusedField(null)}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -407,6 +432,7 @@ const PersonalInformationForm: React.FC = () => {
 							onFocus={() => setFocusedField('fatherName')}
 							onBlur={() => setFocusedField(null)}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -419,6 +445,7 @@ const PersonalInformationForm: React.FC = () => {
 								focusedField === 'dateOfBirth' && styles.focusedInput,
 							]}
 							onPress={showDatePickerModal}
+							disabled={isSubmitting}
 						>
 							<Text style={[styles.dateInputText, !formData.dateOfBirth && styles.placeholderText]}>
 								{formData.dateOfBirth || 'DD - MM - YYYY'}
@@ -445,6 +472,7 @@ const PersonalInformationForm: React.FC = () => {
 							keyboardType="numeric"
 							maxLength={10}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -461,6 +489,7 @@ const PersonalInformationForm: React.FC = () => {
 							keyboardType="numeric"
 							maxLength={10}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -477,6 +506,7 @@ const PersonalInformationForm: React.FC = () => {
 							keyboardType="numeric"
 							maxLength={10}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -486,6 +516,7 @@ const PersonalInformationForm: React.FC = () => {
 						<TouchableOpacity
 							style={styles.dropdownButton}
 							onPress={() => setShowBloodGroupDropdown(true)}
+							disabled={isSubmitting}
 						>
 							<Text
 								style={[styles.dropdownButtonText, !formData.bloodGroup && styles.placeholderText]}
@@ -516,6 +547,7 @@ const PersonalInformationForm: React.FC = () => {
 							numberOfLines={4}
 							textAlignVertical="top"
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
@@ -532,6 +564,7 @@ const PersonalInformationForm: React.FC = () => {
 										<TouchableOpacity
 											onPress={() => removeLanguage(formData.languages[index])}
 											style={styles.removeLanguageButton}
+											disabled={isSubmitting}
 										>
 											<Ionicons name="close" size={16} color="#003032" />
 										</TouchableOpacity>
@@ -543,6 +576,7 @@ const PersonalInformationForm: React.FC = () => {
 						<TouchableOpacity
 							style={styles.dropdownButton}
 							onPress={() => setShowLanguageDropdown(true)}
+							disabled={isSubmitting}
 						>
 							<Text
 								style={[
@@ -561,7 +595,11 @@ const PersonalInformationForm: React.FC = () => {
 					{/* Profile Picture */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Your Profile Picture</Text>
-						<TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+						<TouchableOpacity 
+							style={styles.uploadButton} 
+							onPress={pickImage}
+							disabled={isSubmitting}
+						>
 							{formData.profileImage ? (
 								<Image source={{ uri: formData.profileImage }} style={styles.profileImage} />
 							) : (
@@ -584,19 +622,26 @@ const PersonalInformationForm: React.FC = () => {
 							onFocus={() => setFocusedField('referralCode')}
 							onBlur={() => setFocusedField(null)}
 							placeholderTextColor="#999"
+							editable={!isSubmitting}
 						/>
 					</View>
 
 					{/* Submit Button */}
 					<TouchableOpacity
-						style={[styles.submitButton, !isFormValid() && styles.disabledSubmitButton]}
+						style={[
+							styles.submitButton, 
+							(!isFormValid() || isSubmitting) && styles.disabledSubmitButton
+						]}
 						onPress={handleSubmit}
-						disabled={!isFormValid()}
+						disabled={!isFormValid() || isSubmitting}
 					>
 						<Text
-							style={[styles.submitButtonText, !isFormValid() && styles.disabledSubmitButtonText]}
+							style={[
+								styles.submitButtonText, 
+								(!isFormValid() || isSubmitting) && styles.disabledSubmitButtonText
+							]}
 						>
-							Submit
+							{isSubmitting ? 'Submitting...' : 'Submit'}
 						</Text>
 					</TouchableOpacity>
 				</View>
