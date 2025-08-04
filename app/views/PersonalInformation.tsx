@@ -20,6 +20,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FormData {
 	firstName: string;
@@ -69,6 +70,8 @@ const PersonalInformationForm: React.FC = () => {
 	const [errorMsg, setErrorMsg] = useState('');
 
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
+
+	const insets = useSafeAreaInsets();
 
 	const languages: DropdownItem[] = [
 		{ label: 'English', value: 'english' },
@@ -349,7 +352,13 @@ const PersonalInformationForm: React.FC = () => {
 	};
 
 	return (
-		<View style={styles.container}>
+		<View
+			style={{
+				flex: 1,
+				backgroundColor: '#fff',
+				paddingTop: insets.top,
+			}}
+		>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 			{hasSavedData && (
 				<TouchableOpacity
@@ -676,11 +685,6 @@ const PersonalInformationForm: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: '#fff',
-		paddingTop: Platform.OS === 'android' ? 25 : 0,
-	},
 	scrollView: {
 		flex: 1,
 	},

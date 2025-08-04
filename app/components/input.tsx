@@ -41,8 +41,19 @@ const Input = ({
 
 	return (
 		<View>
-			<Text style={{ color: '#0f172a', fontWeight: '500', marginBottom: 4 }}>{label}</Text>
+			<Text
+				style={{
+					color: '#0f172a',
+					fontWeight: '500',
+					marginBottom: 4,
+					fontSize: 16,
+					lineHeight: 20,
+				}}
+			>
+				{label}
+			</Text>
 			<TextInput
+				style={{ fontSize: 16, lineHeight: 20 }}
 				className={`${className} w-full h-12 text-lg outline-secondary border-primary border px-5 py-1 mt-2 rounded-lg`}
 				placeholder={placeholder}
 				value={value}
@@ -94,6 +105,7 @@ const OTPInput = ({ value, onChange }: OTPInputType) => {
 			<View className="flex flex-row justify-between">
 				{keys.map((key, index) => (
 					<TextInput
+						style={{ lineHeight: 20, fontSize: 16 }}
 						key={key}
 						ref={(ref) => {
 							inputsRef.current[index] = ref;
