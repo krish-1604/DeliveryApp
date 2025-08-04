@@ -51,7 +51,7 @@ const VerifyScreen = () => {
 			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 			const api = new DriverAPI();
 			const response = await api.verifyOTP(formatted, otpValues);
-
+			console.log('Verification response:', response);
 			if (response.success) {
 				if (response.userExists && response.isCompletelyVerified) {
 					await AsyncStorage.multiSet([
@@ -69,7 +69,6 @@ const VerifyScreen = () => {
 				} else if (response.userExists && !response.isCompletelyVerified) {
 					await AsyncStorage.multiSet([
 						['driverId', response.driver.id],
-						['authToken', response.token],
 						['userProfile', JSON.stringify({
 							firstName: response.driver.firstName,
 							lastName: response.driver.lastName,
@@ -77,7 +76,7 @@ const VerifyScreen = () => {
 							profilePicture: response.driver.profilePicture
 						})]
 					]);
-					navigation.navigate('PersonalInformation');
+					navigation.navigate('Details');
 				} else {
 					await AsyncStorage.removeItem('phoneNumber');
 					navigation.navigate('PersonalInformation');
