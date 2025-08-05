@@ -61,6 +61,17 @@ export default function FinalDetailsPage() {
 
 	// Load status when component mounts and when screen comes into focus
 	useEffect(() => {
+		const initializeCompletionStatus = async () => {
+			let completionStatus = {
+				personalInformation: true,
+				personalDocuments: false,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+		};
+		//initializeCompletionStatus();
 		loadCompletionStatus();
 	}, []);
 

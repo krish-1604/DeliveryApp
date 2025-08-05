@@ -309,7 +309,6 @@ const PersonalInformationForm: React.FC = () => {
 		if (formData.referralCode) {
 			formDataToSend.append('referralCode', formData.referralCode.trim());
 		}
-
 		// Handle profile image as file
 		if (formData.profileImage) {
 			// Extract filename from URI or create a default one
@@ -334,17 +333,43 @@ const PersonalInformationForm: React.FC = () => {
 
 		// Log the data being sent for debugging (Note: FormData entries aren't directly loggable)
 		console.log('Submitting form data with profile image as file');
-
 		// Call API with FormData
 		const response = await driverAPI.submitPersonalInformationWithFile(formDataToSend);
 
 		console.log('API response:', response);
 
-		if (response.success) {
-			return true;
-		} else {
-			console.error('API returned error:', response);
-			setErrorMsg(response.message || response.error || 'Failed to submit personal information');
+			if (response.success) {
+				console.log(response.driver.id);
+				await AsyncStorage.setItem('driverID', response.driver.id);
+				return true;
+			} else {
+				console.error('API returned error:', response);
+				setErrorMsg(response.message || response.error || 'Failed to submit personal information');
+				return false;
+			}
+		} catch (error: any) {
+			console.error('API submission error:', error);
+
+			// More detailed error logging
+			if (error.response) {
+				console.error('Error response data:', error.response.data);
+				console.error('Error response status:', error.response.status);
+				console.error('Error response headers:', error.response.headers);
+
+				// Try to extract meaningful error message from response
+				const errorMessage =
+					error.response.data?.message ||
+					error.response.data?.error ||
+					error.response.data?.details ||
+					`Server error: ${error.response.status}`;
+				setErrorMsg(errorMessage);
+			} else if (error.request) {
+				console.error('No response received:', error.request);
+				setErrorMsg('No response from server. Please check your internet connection.');
+			} else {
+				console.error('Error setting up request:', error.message);
+				setErrorMsg(error.message || 'Network error. Please try again.');
+			}
 			return false;
 		}
 	} catch (error: any) {
@@ -383,7 +408,7 @@ const PersonalInformationForm: React.FC = () => {
 		try {
 			// Submit to API
 			const apiSuccess = await submitToAPI();
-			
+
 			if (apiSuccess) {
 				Alert.alert('Success', 'Personal information submitted successfully!', [
 					{
@@ -671,8 +696,8 @@ const PersonalInformationForm: React.FC = () => {
 					{/* Profile Picture */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Your Profile Picture</Text>
-						<TouchableOpacity 
-							style={styles.uploadButton} 
+						<TouchableOpacity
+							style={styles.uploadButton}
 							onPress={pickImage}
 							disabled={isSubmitting}
 						>
@@ -705,16 +730,16 @@ const PersonalInformationForm: React.FC = () => {
 					{/* Submit Button */}
 					<TouchableOpacity
 						style={[
-							styles.submitButton, 
-							(!isFormValid() || isSubmitting) && styles.disabledSubmitButton
+							styles.submitButton,
+							(!isFormValid() || isSubmitting) && styles.disabledSubmitButton,
 						]}
 						onPress={handleSubmit}
 						disabled={!isFormValid() || isSubmitting}
 					>
 						<Text
 							style={[
-								styles.submitButtonText, 
-								(!isFormValid() || isSubmitting) && styles.disabledSubmitButtonText
+								styles.submitButtonText,
+								(!isFormValid() || isSubmitting) && styles.disabledSubmitButtonText,
 							]}
 						>
 							{isSubmitting ? 'Submitting...' : 'Submit'}

@@ -57,7 +57,7 @@ export default function RootLayout() {
 				const [isVerified, authToken, driverId] = await AsyncStorage.multiGet([
 					'isVerified',
 					'authToken',
-					'driverId'
+					'driverId',
 				]);
 
 				const hasVerification = isVerified[1] === 'true';

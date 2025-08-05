@@ -4,7 +4,7 @@ import CheckBox from '@/app/components/checkbox';
 import { Input } from '@/app/components/input';
 import { Body } from '@/app/components/typography';
 import { theme } from '@/app/constants/theme';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@/app/utils/types';
@@ -21,6 +21,16 @@ const RegisterScreen = () => {
 		setChecked((prev) => !prev);
 	};
 
+	useEffect(() => {
+		const checkDriverID = async () => {
+			const ID = await AsyncStorage.getItem('driverID');
+			if (ID) {
+				navigation.navigate('Details');
+			}
+		};
+		checkDriverID();
+	}, []);
+
 	const handlePress = async () => {
 		if (number.length !== 10 || !/^\d{10}$/.test(number)) {
 			Alert.alert('Error', 'Please enter a valid 10-digit mobile number');
@@ -34,9 +44,12 @@ const RegisterScreen = () => {
 
 		try {
 			setLoading(true);
+			console.log('1 --------------------------------- 1');
 			const api = new DriverAPI();
+			console.log('2 --------------------------------- 2');
 			const response = await api.sendOTP(number);
-
+			console.log('3 --------------------------------- 3');
+			console.log(response);
 			if (response.success) {
 				await AsyncStorage.setItem('phoneNumber', number);
 				navigation.navigate('Verify');

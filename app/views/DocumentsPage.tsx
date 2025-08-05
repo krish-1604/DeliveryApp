@@ -13,7 +13,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
-
+import { deleteCachedImage } from '@/app/utils/imageStorage';
+const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const DOCUMENTS_STATUS_KEY = 'documents_status';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
 
@@ -74,10 +75,10 @@ const DocumentsPage = () => {
 			}
 
 			// Check if all documents are uploaded
-			const allDocumentsUploaded = Object.values(documentsStatus).every((status) => status);
-			completionStatus.personalDocuments = allDocumentsUploaded;
+			// const allDocumentsUploaded = Object.values(documentsStatus).every((status) => status);
+			// completionStatus.personalDocuments = allDocumentsUploaded;
 
-			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			// await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
 		} catch (error) {
 			setErrorMsg(
 				error instanceof Error
@@ -103,14 +104,14 @@ const DocumentsPage = () => {
 
 	const getDocumentStatus = (documentType: string): boolean => {
 		switch (documentType) {
-		case 'Aadhar Card':
-			return documentsStatus.aadhaarCard;
-		case 'PAN Card':
-			return documentsStatus.panCard;
-		case 'Driving License':
-			return documentsStatus.drivingLicense;
-		default:
-			return false;
+			case 'Aadhar Card':
+				return documentsStatus.aadhaarCard;
+			case 'PAN Card':
+				return documentsStatus.panCard;
+			case 'Driving License':
+				return documentsStatus.drivingLicense;
+			default:
+				return false;
 		}
 	};
 
@@ -138,6 +139,62 @@ const DocumentsPage = () => {
 
 	const completedCount = Object.values(documentsStatus).filter((status) => status).length;
 
+	const handleSubmit = async () => {
+		console.log('Running submit function');
+		try {
+			const keys = [
+				'aadhaarCard_frontPhoto',
+				'aadhaarCard_backPhoto',
+				'panCard_frontPhoto',
+				'panCard_backPhoto',
+				'drivingLicense_frontPhoto',
+				'drivingLicense_backPhoto',
+			];
+			const result = await AsyncStorage.multiGet(keys);
+			const phoneNum = await AsyncStorage.getItem('phoneNumber');
+			const formattedNum = '+91' + phoneNum;
+			console.log(formattedNum);
+			const URIs = Object.fromEntries(result);
+			console.log('Document URIs:', URIs);
+			const URL = EXPO_PUBLIC_BACKEND_URL + '/api/auth/personal-documents';
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					phoneNumber: formattedNum,
+					aadhaarFrontImage: URIs.aadhar_frontPhoto,
+					aadhaarBackImage: URIs.aadhar_backPhoto,
+					panFrontImage: URIs.pan_frontPhoto,
+					panBackImage: URIs.pan_backPhoto,
+					licenseFrontImage: URIs.driving_frontPhoto,
+					licenseBackImage: URIs.driving_backPhoto,
+				}),
+			});
+			const data = await response.json();
+			console.log('API response:', data);
+			if (URIs) {
+				if (URIs.aadhar_frontPhoto) deleteCachedImage(URIs.aadhar_frontPhoto);
+				if (URIs.aadhar_backPhoto) deleteCachedImage(URIs.aadhar_backPhoto);
+				if (URIs.pan_frontPhoto) deleteCachedImage(URIs.pan_frontPhoto);
+				if (URIs.pan_backPhoto) deleteCachedImage(URIs.pan_backPhoto);
+				if (URIs.driving_frontPhoto) deleteCachedImage(URIs.driving_frontPhoto);
+				if (URIs.driver_backPhoto) deleteCachedImage(URIs.driver_backPhoto);
+			}
+			let completionStatus = {
+				personalInformation: true,
+				personalDocuments: true,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			navigation.goBack();
+		} catch (err) {
+			console.log(err);
+		}
+	};
 	return (
 		<SafeAreaView style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -185,6 +242,29 @@ const DocumentsPage = () => {
 				</View>
 			</View>
 			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
+
+			<View style={{ padding: 20, backgroundColor: '#fff' }}>
+				<TouchableOpacity
+					style={{
+						backgroundColor: completedCount === 3 ? '#4CAF50' : '#bdbdbd',
+						paddingVertical: 16,
+						borderRadius: 10,
+						alignItems: 'center',
+					}}
+					activeOpacity={completedCount === 3 ? 0.8 : 1}
+					disabled={completedCount !== 3}
+					onPress={() => {
+						console.log('Running submit');
+						if (completedCount === 3) {
+							handleSubmit();
+						} else {
+							setErrorMsg('Please upload all documents before submitting.');
+						}
+					}}
+				>
+					<Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>Submit</Text>
+				</TouchableOpacity>
+			</View>
 		</SafeAreaView>
 	);
 };

@@ -8,17 +8,46 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../utils/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorToast from '../components/error';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegistrationPage() {
+	const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 	const [errorMsg, setErrorMsg] = React.useState('');
-	const verificationData = [
+
+	const [verificationData, setVerificationData] = React.useState([
 		{ name: 'Personal Information', isVerified: true },
 		{ name: 'Personal Documents', isVerified: true },
 		{ name: 'Vehicle Details', isVerified: true },
 		{ name: 'Bank Account Details', isVerified: true },
 		{ name: 'Emergency Details', isVerified: true },
-	];
+	]);
+
+	React.useEffect(() => {
+		const getVerificationStatus = async () => {
+			const phoneNum = await AsyncStorage.getItem('phoneNumber');
+			const URL = BACKEND_URL + '/api/auth/complete-verification';
+			try {
+				const response = await fetch(URL, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						phoneNumber: `+91${phoneNum}`,
+					}),
+				});
+
+				const data = await response.json();
+				console.log('Verification status:', data);
+				// handle data here
+			} catch (error) {
+				console.error('Error fetching verification status:', error);
+			}
+		};
+		getVerificationStatus();
+	}, []);
 	const handleButtonPress = async () => {
 		try {
 			await AsyncStorage.setItem('isVerified', 'true');
@@ -38,7 +67,14 @@ export default function RegistrationPage() {
 	);
 
 	return (
-		<View className="flex-1 bg-white">
+		<View
+			className="flex-1 bg-white"
+			style={{
+				flex: 1,
+				backgroundColor: '#fff',
+				paddingTop: insets.top,
+			}}
+		>
 			<ScrollView
 				contentContainerStyle={{ paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
