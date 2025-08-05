@@ -102,6 +102,7 @@ export interface DocumentStatus {
 	license: { front: boolean; back: boolean; verified: boolean };
 	profile: { uploaded: boolean };
 }
+
 export class DriverAPI {
 	private api: AxiosInstance;
 	private baseUrl: string;
@@ -128,10 +129,10 @@ export class DriverAPI {
 		this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 	}
 
-	// setDriverHeaders(driverId: string, phoneNumber: string): void {
-	// 	this.api.defaults.headers.common['x-driver-id'] = driverId;
-	// 	this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
-	// }
+	setDriverHeaders(driverId: string, phoneNumber: string): void {
+		this.api.defaults.headers.common['x-driver-id'] = driverId;
+		this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
+	}
 
 	clearAuth(): void {
 		delete this.api.defaults.headers.common['Authorization'];
@@ -151,6 +152,7 @@ export class DriverAPI {
 		});
 		return response.data;
 	}
+
 	async submitPersonalInformation(personalData: {
 		phoneNumber: string;
 		firstName: string;
@@ -166,27 +168,42 @@ export class DriverAPI {
 		const response: AxiosResponse = await this.api.post('/api/auth/personal-info', personalData);
 		return response.data;
 	}
-	async verifyOTP(phoneNumber: string, code: string): Promise<{
-	success: boolean;
-	message: string;
-	userExists: boolean;
-	isCompletelyVerified: boolean;
-	token: string;
-	driver: {
-		id: string;
-		phoneNumber: string;
-		firstName: string;
-		lastName: string;
-		profilePicture: string | null;
-	};
-}> {
-	const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
-		phoneNumber,
-		code,
-	});
-	return response.data;
-}
 
+	// New method for submitting personal information with file (profile image)
+	async submitPersonalInformationWithFile(formData: FormData): Promise<ApiResponse> {
+		try {
+			const response: AxiosResponse = await this.api.post('/api/auth/personal-info', formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+			});
+			return response.data;
+		} catch (error) {
+			console.error('Error submitting personal information with file:', error);
+			throw error;
+		}
+	}
+
+	async verifyOTP(phoneNumber: string, code: string): Promise<{
+		success: boolean;
+		message: string;
+		userExists: boolean;
+		isCompletelyVerified: boolean;
+		token: string;
+		driver: {
+			id: string;
+			phoneNumber: string;
+			firstName: string;
+			lastName: string;
+			profilePicture: string | null;
+		};
+	}> {
+		const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
+			phoneNumber,
+			code,
+		});
+		return response.data;
+	}
 
 	async adminLogin(
 		email: string,

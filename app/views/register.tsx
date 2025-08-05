@@ -53,7 +53,7 @@ const RegisterScreen = () => {
 	return (
 		<View className="relative flex w-screen bg-white h-screen overflow-hidden">
 			<Background />
-			<View className="w-full h-2/6 px-5 flex gap-4 justify-end pb-16 mt-10">
+			<View className="w-full h-2/6 px-5 flex gap-4 justify-end mt-10">
 				<Input
 					type="number"
 					limit={10}

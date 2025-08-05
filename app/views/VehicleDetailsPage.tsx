@@ -105,9 +105,6 @@ export default function VehicleDetailsPage() {
 				color: vehicleDetails.color,
 				plateNumber: vehicleDetails.plateNumber.toUpperCase(),
 				yearOfManufacture: parseInt(vehicleDetails.yearOfManufacture, 10),
-				rcFrontImage: "https://example.com/rc-front.jpg",
-				rcBackImage: "https://example.com/rc-back.jpg",
-				insuranceImage: "https://example.com/insurance.jpg",
 			};
 
 			console.log('API Payload:', JSON.stringify(apiPayload, null, 2));
