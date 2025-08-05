@@ -182,13 +182,18 @@ const DocumentsPage = () => {
 				if (URIs.driving_frontPhoto) deleteCachedImage(URIs.driving_frontPhoto);
 				if (URIs.driver_backPhoto) deleteCachedImage(URIs.driver_backPhoto);
 			}
+			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
 			let completionStatus = {
-				personalInformation: true,
-				personalDocuments: true,
+				personalInformation: false,
+				personalDocuments: false,
 				vehicleDetails: false,
 				bankDetails: false,
 				emergencyDetails: false,
 			};
+			if (savedStatus) {
+				completionStatus = JSON.parse(savedStatus);
+			}
+			completionStatus.personalDocuments = true;
 			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
 			navigation.goBack();
 		} catch (err) {

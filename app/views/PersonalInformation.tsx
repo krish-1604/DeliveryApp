@@ -21,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DriverAPI } from '@/app/utils/routes/driver'; // Update this import path
+import { DriverAPI } from '@/app/utils/routes/driver';
 
 interface FormData {
 	firstName: string;
@@ -107,8 +107,8 @@ const PersonalInformationForm: React.FC = () => {
 			const storedPhoneNumber = await AsyncStorage.getItem('phoneNumber');
 			if (storedPhoneNumber) {
 				// Remove +91 prefix if present and keep only 10 digits
-				const cleanPhone = storedPhoneNumber.replace(/^\+91/, '').replace(/\D/g, '');
-				setFormData(prev => ({ ...prev, primaryMobile: cleanPhone }));
+				const cleanPhone = storedPhoneNumber.replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+				setFormData((prev) => ({ ...prev, primaryMobile: cleanPhone }));
 			}
 		} catch (error) {
 			console.error('Error loading phone number from AsyncStorage:', error);
@@ -121,6 +121,7 @@ const PersonalInformationForm: React.FC = () => {
 			const token = await AsyncStorage.getItem('auth_token');
 			const driverId = await AsyncStorage.getItem('driver_id');
 			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
+
 			if (token) {
 				driverAPI.setBearer(token);
 			}
@@ -137,21 +138,25 @@ const PersonalInformationForm: React.FC = () => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
+	const calculateAge = (birthDate: Date): number => {
+		const today = new Date();
+		let age = today.getFullYear() - birthDate.getFullYear();
+		const monthDiff = today.getMonth() - birthDate.getMonth();
+
+		if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+			age--;
+		}
+
+		return age;
+	};
+
 	const handleDateChange = (event: DateTimePickerEvent, date?: Date) => {
 		setShowDatePicker(false);
-		if (date) {
-			const today = new Date();
-			const age = today.getFullYear() - date.getFullYear();
-			const monthDiff = today.getMonth() - date.getMonth();
-			const dayDiff = today.getDate() - date.getDate();
 
-			// Calculate exact age
-			let exactAge = age;
-			if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-				exactAge--;
-			}
+		if (date && event.type === 'set') {
+			const age = calculateAge(date);
 
-			if (exactAge < 21) {
+			if (age < 21) {
 				Alert.alert('Age Requirement', 'Driver must be at least 21 years old to register.', [
 					{ text: 'OK' },
 				]);
@@ -159,7 +164,7 @@ const PersonalInformationForm: React.FC = () => {
 			}
 
 			setSelectedDate(date);
-			const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+			const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
 			updateFormData('dateOfBirth', formattedDate);
 		}
 	};
@@ -206,199 +211,203 @@ const PersonalInformationForm: React.FC = () => {
 	};
 
 	const pickImage = async () => {
-	const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		try {
+			// Request permissions
+			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-	if (permissionResult.granted === false) {
-		Alert.alert('Permission Required', 'Permission to access camera roll is required!');
-		return;
-	}
+			if (!permissionResult.granted) {
+				Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+				return;
+			}
 
-	const result = await ImagePicker.launchImageLibraryAsync({
-		mediaTypes: ImagePicker.MediaTypeOptions.Images,
-		allowsEditing: true,
-		aspect: [1, 1],
-		quality: 0.8, // Slightly reduced quality to optimize file size
-		allowsMultipleSelection: false, // Ensure single selection
-		selectionLimit: 1,
-		// Enable both JPEG and PNG formats
-		presentationStyle: ImagePicker.UIImagePickerPresentationStyle.POPOVER,
-	});
+			// Launch image picker with simplified options
+			const result = await ImagePicker.launchImageLibraryAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.Images,
+				allowsEditing: true,
+				aspect: [1, 1],
+				quality: 0.8,
+			});
 
-	if (!result.canceled && result.assets && result.assets.length > 0) {
-		const selectedImage = result.assets[0];
-		
-		// Validate file size (optional - 5MB limit)
-		if (selectedImage.fileSize && selectedImage.fileSize > 5 * 1024 * 1024) {
-			Alert.alert('File Size Error', 'Image size should be less than 5MB. Please select a smaller image.');
-			return;
+			if (!result.canceled && result.assets && result.assets.length > 0) {
+				const selectedImage = result.assets[0];
+
+				// Validate file size (5MB limit)
+				if (selectedImage.fileSize && selectedImage.fileSize > 5 * 1024 * 1024) {
+					Alert.alert(
+						'File Size Error',
+						'Image size should be less than 5MB. Please select a smaller image.'
+					);
+					return;
+				}
+
+				// Validate image format
+				const validFormats = ['jpg', 'jpeg', 'png'];
+				const fileExtension = selectedImage.uri.split('.').pop()?.toLowerCase();
+
+				if (fileExtension && !validFormats.includes(fileExtension)) {
+					Alert.alert('Format Error', 'Please select a JPEG or PNG image.');
+					return;
+				}
+
+				updateFormData('profileImage', selectedImage.uri);
+			}
+		} catch (error) {
+			console.error('Error picking image:', error);
+			Alert.alert('Error', 'Failed to pick image. Please try again.');
 		}
+	};
 
-		// Validate image format (optional)
-		const validFormats = ['jpg', 'jpeg', 'png'];
-		const fileExtension = selectedImage.uri.split('.').pop()?.toLowerCase();
-		
-		if (fileExtension && !validFormats.includes(fileExtension)) {
-			Alert.alert('Format Error', 'Please select a JPEG or PNG image.');
-			return;
-		}
-
-		updateFormData('profileImage', selectedImage.uri);
-	}
-};
+	const validatePhoneNumber = (phone: string): boolean => {
+		const cleanPhone = phone.replace(/\D/g, '');
+		return cleanPhone.length === 10 && /^[0-9]{10}$/.test(cleanPhone);
+	};
 
 	const validateForm = (): boolean => {
+		// Check if all required fields are filled
 		if (!isFormValid()) {
-			Alert.alert('Validation Error', 'Please fill all required fields');
+			setErrorMsg('Please fill all required fields');
 			return false;
 		}
 
-		const mobileRegex = /^[0-9]{10}$/;
-		if (!mobileRegex.test(formData.primaryMobile)) {
-			Alert.alert('Validation Error', 'Please enter a valid 10-digit mobile number');
+		// Validate primary mobile
+		if (!validatePhoneNumber(formData.primaryMobile)) {
+			setErrorMsg('Please enter a valid 10-digit mobile number');
 			return false;
 		}
 
-		if (formData.whatsappNumber && !mobileRegex.test(formData.whatsappNumber)) {
-			Alert.alert('Validation Error', 'Please enter a valid 10-digit WhatsApp number');
+		// Validate WhatsApp number if provided
+		if (formData.whatsappNumber && !validatePhoneNumber(formData.whatsappNumber)) {
+			setErrorMsg('Please enter a valid 10-digit WhatsApp number');
 			return false;
 		}
 
-		if (formData.secondaryMobile && !mobileRegex.test(formData.secondaryMobile)) {
-			Alert.alert('Validation Error', 'Please enter a valid 10-digit secondary mobile number');
+		// Validate secondary mobile if provided
+		if (formData.secondaryMobile && !validatePhoneNumber(formData.secondaryMobile)) {
+			setErrorMsg('Please enter a valid 10-digit secondary mobile number');
 			return false;
 		}
 
 		return true;
 	};
 
-	const submitToAPI = async (): Promise<boolean> => {
-	try {
-		setIsSubmitting(true);
+	const formatPhoneNumber = (phone: string): string => {
+		// Clean the phone number - remove all non-digits
+		const cleanPhone = phone.replace(/\D/g, '');
 
-		// Format phone number - ensure it starts with +91
-		const formatPhoneNumber = (phone: string) => {
-			const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
-			if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
-				return `+${cleanPhone}`;
-			} else if (cleanPhone.length === 10) {
-				return `+91${cleanPhone}`;
-			}
+		// If it already has country code (starts with 91), format it
+		if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
+			return `+${cleanPhone}`;
+		}
+
+		// If it's a 10-digit number, add +91
+		if (cleanPhone.length === 10) {
 			return `+91${cleanPhone}`;
-		};
-
-		// Create FormData for multipart/form-data submission
-		const formDataToSend = new FormData();
-
-		// Add basic form fields
-		formDataToSend.append('phoneNumber', formatPhoneNumber(formData.primaryMobile));
-		formDataToSend.append('firstName', formData.firstName.trim());
-		formDataToSend.append('lastName', formData.lastName.trim());
-		formDataToSend.append('fatherName', formData.fatherName.trim());
-		formDataToSend.append('dateOfBirth', formData.dateOfBirth);
-		formDataToSend.append('address', formData.address.trim());
-		formDataToSend.append('language', formData.languages.join(','));
-		formDataToSend.append('bloodGroup', formData.bloodGroup);
-
-		// Add optional fields only if they exist
-		if (formData.whatsappNumber) {
-			formDataToSend.append('whatsappNumber', formatPhoneNumber(formData.whatsappNumber));
-		}
-		if (formData.secondaryMobile) {
-			formDataToSend.append('secondaryNumber', formatPhoneNumber(formData.secondaryMobile));
-		}
-		if (formData.referralCode) {
-			formDataToSend.append('referralCode', formData.referralCode.trim());
-		}
-		// Handle profile image as file
-		if (formData.profileImage) {
-			// Extract filename from URI or create a default one
-			const uriParts = formData.profileImage.split('/');
-			const fileName = uriParts[uriParts.length - 1] || 'profile-image.jpg';
-			
-			// Detect image type from filename or URI
-			const getImageType = (uri: string): string => {
-				const extension = uri.split('.').pop()?.toLowerCase();
-				return extension === 'png' ? 'image/png' : 'image/jpeg';
-			};
-			
-			// Create file object for React Native
-			const imageFile = {
-				uri: formData.profileImage,
-				type: getImageType(formData.profileImage),
-				name: fileName,
-			} as any; // TypeScript workaround for FormData.append
-
-			formDataToSend.append('profileImage', imageFile);
 		}
 
-		// Log the data being sent for debugging (Note: FormData entries aren't directly loggable)
-		console.log('Submitting form data with profile image as file');
-		// Call API with FormData
-		const response = await driverAPI.submitPersonalInformationWithFile(formDataToSend);
+		// If it's longer than 10 digits but doesn't start with 91, take last 10 digits
+		if (cleanPhone.length > 10) {
+			return `+91${cleanPhone.slice(-10)}`;
+		}
 
-		console.log('API response:', response);
+		// Default case - add +91 to whatever we have
+		return `+91${cleanPhone}`;
+	};
 
-			if (response.success) {
-				console.log(response.driver.id);
-				await AsyncStorage.setItem('driverID', response.driver.id);
+	const submitToAPI = async (): Promise<boolean> => {
+		try {
+			setIsSubmitting(true);
+			setErrorMsg('');
+
+			// Create FormData for multipart/form-data submission
+			const formDataToSend = new FormData();
+
+			// Add basic form fields
+			formDataToSend.append('phoneNumber', formatPhoneNumber(formData.primaryMobile));
+			formDataToSend.append('firstName', formData.firstName.trim());
+			formDataToSend.append('lastName', formData.lastName.trim());
+			formDataToSend.append('fatherName', formData.fatherName.trim());
+			formDataToSend.append('dateOfBirth', formData.dateOfBirth);
+			formDataToSend.append('address', formData.address.trim());
+			formDataToSend.append('language', formData.languages.join(','));
+			formDataToSend.append('bloodGroup', formData.bloodGroup);
+
+			// Add optional fields only if they exist
+			if (formData.whatsappNumber.trim()) {
+				formDataToSend.append('whatsappNumber', formatPhoneNumber(formData.whatsappNumber));
+			}
+			if (formData.secondaryMobile.trim()) {
+				formDataToSend.append('secondaryNumber', formatPhoneNumber(formData.secondaryMobile));
+			}
+			if (formData.referralCode.trim()) {
+				formDataToSend.append('referralCode', formData.referralCode.trim());
+			}
+
+			// Handle profile image as file
+			if (formData.profileImage) {
+				const fileName = formData.profileImage.split('/').pop() || 'profile-image.jpg';
+				const fileType = formData.profileImage.toLowerCase().endsWith('.png')
+					? 'image/png'
+					: 'image/jpeg';
+
+				// Create proper file object for React Native FormData
+				const imageFile = {
+					uri: formData.profileImage,
+					type: fileType,
+					name: fileName,
+				} as any;
+
+				//formDataToSend.append('profileImage', imageFile);
+			}
+
+			// Call API with FormData
+			const response = await driverAPI.submitPersonalInformationWithFile(formDataToSend);
+			console.log(response);
+			if (response && response.success) {
+				// Store driver ID with consistent key
+				if (response.driver && response.driver.id) {
+					await AsyncStorage.setItem('driver_id', response.driver.id);
+				}
 				return true;
 			} else {
-				console.error('API returned error:', response);
-				setErrorMsg(response.message || response.error || 'Failed to submit personal information');
+				const errorMessage =
+					response?.message || response?.error || 'Failed to submit personal information';
+				setErrorMsg(errorMessage);
 				return false;
 			}
 		} catch (error: any) {
 			console.error('API submission error:', error);
 
-			// More detailed error logging
-			if (error.response) {
-				console.error('Error response data:', error.response.data);
-				console.error('Error response status:', error.response.status);
-				console.error('Error response headers:', error.response.headers);
+			let errorMessage = 'An error occurred while submitting your information.';
 
-				// Try to extract meaningful error message from response
-				const errorMessage =
+			if (error.response) {
+				// Server responded with error status
+				const serverMessage =
 					error.response.data?.message ||
 					error.response.data?.error ||
-					error.response.data?.details ||
-					`Server error: ${error.response.status}`;
-				setErrorMsg(errorMessage);
+					error.response.data?.details;
+
+				if (serverMessage) {
+					errorMessage = serverMessage;
+				} else if (error.response.status >= 500) {
+					errorMessage = 'Server error. Please try again later.';
+				} else if (error.response.status === 401) {
+					errorMessage = 'Authentication failed. Please login again.';
+				} else if (error.response.status === 400) {
+					errorMessage = 'Invalid data submitted. Please check your information.';
+				}
 			} else if (error.request) {
-				console.error('No response received:', error.request);
-				setErrorMsg('No response from server. Please check your internet connection.');
-			} else {
-				console.error('Error setting up request:', error.message);
-				setErrorMsg(error.message || 'Network error. Please try again.');
+				// Network error
+				errorMessage = 'Network error. Please check your internet connection.';
+			} else if (error.message) {
+				errorMessage = error.message;
 			}
-			return false;
-		}
-	} catch (error: any) {
-		console.error('API submission error:', error);
-		
-		// More detailed error logging
-		if (error.response) {
-			console.error('Error response data:', error.response.data);
-			console.error('Error response status:', error.response.status);
-			console.error('Error response headers:', error.response.headers);
-			
-			// Try to extract meaningful error message from response
-			const errorMessage = error.response.data?.message || 
-							   error.response.data?.error || 
-							   error.response.data?.details ||
-							   `Server error: ${error.response.status}`;
+
 			setErrorMsg(errorMessage);
-		} else if (error.request) {
-			console.error('No response received:', error.request);
-			setErrorMsg('No response from server. Please check your internet connection.');
-		} else {
-			console.error('Error setting up request:', error.message);
-			setErrorMsg(error.message || 'Network error. Please try again.');
+			return false;
+		} finally {
+			setIsSubmitting(false);
 		}
-		return false;
-	} finally {
-		setIsSubmitting(false);
-	}
-};
+	};
 
 	const handleSubmit = async () => {
 		if (!validateForm()) {
@@ -406,7 +415,6 @@ const PersonalInformationForm: React.FC = () => {
 		}
 
 		try {
-			// Submit to API
 			const apiSuccess = await submitToAPI();
 
 			if (apiSuccess) {
@@ -418,16 +426,10 @@ const PersonalInformationForm: React.FC = () => {
 						},
 					},
 				]);
-			} else {
-				Alert.alert('Error', 'Failed to submit personal information. Please try again.');
 			}
 		} catch (error) {
-			setErrorMsg(
-				error instanceof Error
-					? error.message
-					: 'An error occurred while submitting personal information.'
-			);
-			Alert.alert('Error', 'Failed to submit personal information. Please try again.');
+			console.error('Submit error:', error);
+			setErrorMsg('An unexpected error occurred. Please try again.');
 		}
 	};
 
@@ -467,6 +469,17 @@ const PersonalInformationForm: React.FC = () => {
 		return item ? item.label : '';
 	};
 
+	const formatDateForDisplay = (dateString: string): string => {
+		if (!dateString) return 'DD - MM - YYYY';
+
+		const date = new Date(dateString);
+		const day = date.getDate().toString().padStart(2, '0');
+		const month = (date.getMonth() + 1).toString().padStart(2, '0');
+		const year = date.getFullYear();
+
+		return `${day} - ${month} - ${year}`;
+	};
+
 	return (
 		<View
 			style={{
@@ -482,6 +495,7 @@ const PersonalInformationForm: React.FC = () => {
 			>
 				<Ionicons name="chevron-back" size={24} color="#003032" />
 			</TouchableOpacity>
+
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				<View style={styles.header}>
 					<Text style={styles.title}>Personal Information</Text>
@@ -548,7 +562,7 @@ const PersonalInformationForm: React.FC = () => {
 							disabled={isSubmitting}
 						>
 							<Text style={[styles.dateInputText, !formData.dateOfBirth && styles.placeholderText]}>
-								{formData.dateOfBirth || 'DD - MM - YYYY'}
+								{formatDateForDisplay(formData.dateOfBirth)}
 							</Text>
 							<Ionicons
 								name="calendar-outline"
@@ -584,7 +598,11 @@ const PersonalInformationForm: React.FC = () => {
 							style={[styles.input, focusedField === 'whatsappNumber' && styles.focusedInput]}
 							placeholder="Enter 10 digit WhatsApp number"
 							value={formData.whatsappNumber}
-							onChangeText={(text) => updateFormData('whatsappNumber', text)}
+							onChangeText={(text) => {
+								// Only allow digits and limit to 10 characters
+								const cleanText = text.replace(/\D/g, '').slice(0, 10);
+								updateFormData('whatsappNumber', cleanText);
+							}}
 							onFocus={() => setFocusedField('whatsappNumber')}
 							onBlur={() => setFocusedField(null)}
 							keyboardType="numeric"
@@ -601,7 +619,11 @@ const PersonalInformationForm: React.FC = () => {
 							style={[styles.input, focusedField === 'secondaryMobile' && styles.focusedInput]}
 							placeholder="Enter secondary mobile number"
 							value={formData.secondaryMobile}
-							onChangeText={(text) => updateFormData('secondaryMobile', text)}
+							onChangeText={(text) => {
+								// Only allow digits and limit to 10 characters
+								const cleanText = text.replace(/\D/g, '').slice(0, 10);
+								updateFormData('secondaryMobile', cleanText);
+							}}
 							onFocus={() => setFocusedField('secondaryMobile')}
 							onBlur={() => setFocusedField(null)}
 							keyboardType="numeric"
@@ -660,7 +682,7 @@ const PersonalInformationForm: React.FC = () => {
 						{formData.languages.length > 0 && (
 							<View style={styles.selectedLanguagesContainer}>
 								{getSelectedLanguageLabels().map((languageLabel, index) => (
-									<View key={index} style={styles.languageTag}>
+									<View key={`${formData.languages[index]}-${index}`} style={styles.languageTag}>
 										<Text style={styles.languageTagText}>{languageLabel}</Text>
 										<TouchableOpacity
 											onPress={() => removeLanguage(formData.languages[index])}
@@ -750,16 +772,39 @@ const PersonalInformationForm: React.FC = () => {
 
 			{/* Date Picker */}
 			{showDatePicker && (
-				<DateTimePicker
-					value={selectedDate}
-					mode="date"
-					display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-					onChange={handleDateChange}
-					maximumDate={new Date()}
-					minimumDate={new Date(1900, 0, 1)}
-					accentColor="#003032"
-					textColor="#003032"
-				/>
+				<Modal
+					visible={showDatePicker}
+					transparent={true}
+					animationType="slide"
+					onRequestClose={() => setShowDatePicker(false)}
+				>
+					<View style={styles.datePickerModalOverlay}>
+						<View style={styles.datePickerModalContent}>
+							<View style={styles.datePickerHeader}>
+								<TouchableOpacity onPress={() => setShowDatePicker(false)}>
+									<Text style={styles.datePickerCancelText}>Cancel</Text>
+								</TouchableOpacity>
+								<Text style={styles.datePickerTitle}>Select Date</Text>
+								<TouchableOpacity
+									onPress={() => {
+										handleDateChange({ type: 'set' } as DateTimePickerEvent, selectedDate);
+									}}
+								>
+									<Text style={styles.datePickerDoneText}>Done</Text>
+								</TouchableOpacity>
+							</View>
+							<DateTimePicker
+								value={selectedDate}
+								mode="date"
+								display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+								onChange={handleDateChange}
+								maximumDate={new Date()}
+								minimumDate={new Date(1900, 0, 1)}
+								style={styles.datePicker}
+							/>
+						</View>
+					</View>
+				</Modal>
 			)}
 
 			{/* Language Dropdown Modal */}
@@ -816,6 +861,8 @@ const PersonalInformationForm: React.FC = () => {
 					</View>
 				</View>
 			</Modal>
+
+			{/* Error Toast */}
 			{errorMsg ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
 		</View>
 	);
@@ -942,6 +989,30 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		fontWeight: '600',
 	},
+	disabledSubmitButton: {
+		backgroundColor: '#CCCCCC',
+	},
+	disabledSubmitButtonText: {
+		color: '#666666',
+	},
+	readOnlyInput: {
+		backgroundColor: '#F5F5F5',
+		color: '#666',
+	},
+	readOnlyInputContainer: {
+		position: 'relative',
+	},
+	lockIconContainer: {
+		position: 'absolute',
+		right: 12,
+		top: '50%',
+		transform: [{ translateY: -8 }],
+	},
+	readOnlyHint: {
+		marginTop: 4,
+		fontSize: 12,
+		color: '#999',
+	},
 	modalOverlay: {
 		flex: 1,
 		backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1015,31 +1086,44 @@ const styles = StyleSheet.create({
 	removeLanguageButton: {
 		padding: 2,
 	},
-	disabledSubmitButton: {
-		backgroundColor: '#CCCCCC',
+	// Date Picker Modal Styles
+	datePickerModalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
-	disabledSubmitButtonText: {
-		color: '#666666',
+	datePickerModalContent: {
+		backgroundColor: '#fff',
+		borderRadius: 20,
+		width: '90%',
+		maxWidth: 400,
 	},
-	readOnlyInput: {
-	backgroundColor: '#F5F5F5', // light grey background
-	color: '#666',              // dimmed text
-},
-readOnlyInputContainer: {
-	position: 'relative',
-},
-lockIconContainer: {
-	position: 'absolute',
-	right: 12,
-	top: '50%',
-	transform: [{ translateY: -8 }],
-},
-readOnlyHint: {
-	marginTop: 4,
-	fontSize: 12,
-	color: '#999',
-},
-
+	datePickerHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		padding: 20,
+		borderBottomWidth: 1,
+		borderBottomColor: '#E0E0E0',
+	},
+	datePickerTitle: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#333',
+	},
+	datePickerCancelText: {
+		fontSize: 16,
+		color: '#666',
+	},
+	datePickerDoneText: {
+		fontSize: 16,
+		color: '#003032',
+		fontWeight: '600',
+	},
+	datePicker: {
+		height: 200,
+	},
 });
 
 export default PersonalInformationForm;
