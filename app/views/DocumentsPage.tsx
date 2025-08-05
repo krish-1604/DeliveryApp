@@ -152,7 +152,8 @@ const DocumentsPage = () => {
 			];
 			const result = await AsyncStorage.multiGet(keys);
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
-			console.log(phoneNum);
+			const formattedNum = '+91' + phoneNum;
+			console.log(formattedNum);
 			const URIs = Object.fromEntries(result);
 			console.log('Document URIs:', URIs);
 			const URL = EXPO_PUBLIC_BACKEND_URL + '/api/auth/personal-documents';
@@ -162,7 +163,7 @@ const DocumentsPage = () => {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					phoneNumber: phoneNum,
+					phoneNumber: formattedNum,
 					aadhaarFrontImage: URIs.aadhar_frontPhoto,
 					aadhaarBackImage: URIs.aadhar_backPhoto,
 					panFrontImage: URIs.pan_frontPhoto,
@@ -173,6 +174,15 @@ const DocumentsPage = () => {
 			});
 			const data = await response.json();
 			console.log('API response:', data);
+			let completionStatus = {
+				personalInformation: true,
+				personalDocuments: true,
+				vehicleDetails: false,
+				bankDetails: false,
+				emergencyDetails: false,
+			};
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			navigation.goBack();
 		} catch (err) {
 			console.log(err);
 		}
@@ -239,7 +249,6 @@ const DocumentsPage = () => {
 						console.log('Running submit');
 						if (completedCount === 3) {
 							handleSubmit();
-							navigation.goBack();
 						} else {
 							setErrorMsg('Please upload all documents before submitting.');
 						}

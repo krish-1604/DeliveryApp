@@ -57,28 +57,33 @@ const VerifyScreen = () => {
 					await AsyncStorage.multiSet([
 						['driverId', response.driver.id],
 						['isVerified', 'true'],
-						['authToken', response.token],
-						['userProfile', JSON.stringify({
-							firstName: response.driver.firstName,
-							lastName: response.driver.lastName,
-							phoneNumber: response.driver.phoneNumber,
-							profilePicture: response.driver.profilePicture
-						})]
+						[
+							'userProfile',
+							JSON.stringify({
+								firstName: response.driver.firstName,
+								lastName: response.driver.lastName,
+								phoneNumber: response.driver.phoneNumber,
+								profilePicture: response.driver.profilePicture,
+							}),
+						],
 					]);
 					navigation.navigate('MainTabs');
 				} else if (response.userExists && !response.isCompletelyVerified) {
 					await AsyncStorage.multiSet([
 						['driverId', response.driver.id],
-						['userProfile', JSON.stringify({
-							firstName: response.driver.firstName,
-							lastName: response.driver.lastName,
-							phoneNumber: response.driver.phoneNumber,
-							profilePicture: response.driver.profilePicture
-						})]
+						[
+							'userProfile',
+							JSON.stringify({
+								firstName: response.driver.firstName,
+								lastName: response.driver.lastName,
+								phoneNumber: response.driver.phoneNumber,
+								profilePicture: response.driver.profilePicture,
+							}),
+						],
 					]);
 					navigation.navigate('Details');
 				} else {
-					await AsyncStorage.removeItem('phoneNumber');
+					//await AsyncStorage.removeItem('phoneNumber');
 					navigation.navigate('PersonalInformation');
 				}
 			} else {
