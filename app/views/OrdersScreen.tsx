@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Dummy orders split by type
 const allOrdersData = {
@@ -50,6 +51,7 @@ const allOrdersData = {
 };
 
 export default function OrdersScreen() {
+	const insets = useSafeAreaInsets();
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 	const [selectedTab, setSelectedTab] = useState<'Meal' | 'Store'>('Store');
 	const [selectedDate] = useState<string>('24/04/2025');
@@ -70,7 +72,7 @@ export default function OrdersScreen() {
 	);
 
 	return (
-		<SafeAreaView style={{ paddingTop: 30 }} className="flex-1 px-4">
+		<SafeAreaView style={{ paddingTop: insets.top }} className="flex-1 px-4">
 			<View className="flex-row items-center justify-center mb-4">
 				<Ionicons name="bag-outline" size={24} className="mr-2" />
 				<Text className="text-2xl font-semibold">Orders</Text>
@@ -183,15 +185,15 @@ export default function OrdersScreen() {
 
 const getStatusColor = (status: string) => {
 	switch (status) {
-	case 'Pickup Pending':
-		return 'bg-yellow-100 text-yellow-700';
-	case 'Pickup Failed':
-		return 'bg-red-100 text-red-700';
-	case 'Pickup Rescheduled':
-		return 'bg-orange-100 text-orange-700';
-	case 'Delivered':
-		return 'bg-green-100 text-green-700';
-	default:
-		return 'bg-gray-100 text-gray-600';
+		case 'Pickup Pending':
+			return 'bg-yellow-100 text-yellow-700';
+		case 'Pickup Failed':
+			return 'bg-red-100 text-red-700';
+		case 'Pickup Rescheduled':
+			return 'bg-orange-100 text-orange-700';
+		case 'Delivered':
+			return 'bg-green-100 text-green-700';
+		default:
+			return 'bg-gray-100 text-gray-600';
 	}
 };

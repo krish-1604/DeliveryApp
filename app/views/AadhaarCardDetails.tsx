@@ -17,7 +17,6 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp, RootStackParamList } from '@/app/utils/types';
 import ErrorToast from '../components/error';
-import { DriverAPI } from '@/app/utils/routes/driver';
 import { saveImage } from '@/app/utils/imageStorage';
 import * as Device from 'expo-device';
 
