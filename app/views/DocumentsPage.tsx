@@ -13,7 +13,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
-
+import { deleteCachedImage } from '@/app/utils/imageStorage';
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const DOCUMENTS_STATUS_KEY = 'documents_status';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
@@ -174,6 +174,14 @@ const DocumentsPage = () => {
 			});
 			const data = await response.json();
 			console.log('API response:', data);
+			if (URIs) {
+				if (URIs.aadhar_frontPhoto) deleteCachedImage(URIs.aadhar_frontPhoto);
+				if (URIs.aadhar_backPhoto) deleteCachedImage(URIs.aadhar_backPhoto);
+				if (URIs.pan_frontPhoto) deleteCachedImage(URIs.pan_frontPhoto);
+				if (URIs.pan_backPhoto) deleteCachedImage(URIs.pan_backPhoto);
+				if (URIs.driving_frontPhoto) deleteCachedImage(URIs.driving_frontPhoto);
+				if (URIs.driver_backPhoto) deleteCachedImage(URIs.driver_backPhoto);
+			}
 			let completionStatus = {
 				personalInformation: true,
 				personalDocuments: true,
