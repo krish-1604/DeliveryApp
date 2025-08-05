@@ -28,6 +28,7 @@ export default function RegistrationPage() {
 		const getVerificationStatus = async () => {
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
 			const URL = BACKEND_URL + '/api/auth/complete-verification';
+
 			try {
 				const response = await fetch(URL, {
 					method: 'POST',
@@ -41,13 +42,32 @@ export default function RegistrationPage() {
 
 				const data = await response.json();
 				console.log('Verification status:', data);
-				// handle data here
+
+				if (data?.profileStatus) {
+					const status = data.profileStatus;
+
+					const updatedStatus = [
+						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+						{
+							name: 'Personal Documents',
+							isVerified: status.personalDocuments?.verified ?? false,
+						},
+						{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+						{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+						{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+					];
+
+					setVerificationData(updatedStatus);
+				}
 			} catch (error) {
 				console.error('Error fetching verification status:', error);
+				setErrorMsg('Failed to load verification status. Please try again later.');
 			}
 		};
+
 		getVerificationStatus();
 	}, []);
+
 	const handleButtonPress = async () => {
 		try {
 			await AsyncStorage.setItem('isVerified', 'true');
