@@ -7,16 +7,17 @@ import { Input } from '../components/input';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import ErrorToast from '../components/error';
 
-const VEHICLE_DETAILS_KEY = 'vehicle_details';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 export default function VehicleDetailsPage() {
 	const navigation = useNavigation<NavigationProp<'Vehicle'>>();
 	const [isSaving, setIsSaving] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const [errorMsg, setErrorMsg] = useState('');
+	const [phoneNumber, setPhoneNumber] = useState('');
 
 	const [vehicleDetails, setVehicleDetails] = useState({
-		type: '',
+		vehicleType: '',
 		model: '',
 		manufacturer: '',
 		color: '',
@@ -24,36 +25,30 @@ export default function VehicleDetailsPage() {
 		yearOfManufacture: '',
 	});
 
-	// Load saved vehicle details on component mount
+	// Load phone number on component mount
 	useEffect(() => {
-		loadVehicleDetails();
+		loadInitialData();
 	}, []);
 
-	const loadVehicleDetails = async () => {
+	const loadInitialData = async () => {
 		try {
-			const savedDetails = await AsyncStorage.getItem(VEHICLE_DETAILS_KEY);
-			if (savedDetails) {
-				const parsedDetails = JSON.parse(savedDetails);
-				setVehicleDetails(parsedDetails);
+			setIsLoading(true);
+			
+			// Get phone number from AsyncStorage
+			const savedPhoneNumber = await AsyncStorage.getItem('phoneNumber');
+			if (savedPhoneNumber) {
+				setPhoneNumber(savedPhoneNumber);
 			}
 		} catch (error) {
 			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while loading vehicle details.'
+				error instanceof Error ? error.message : 'An error occurred while loading data.'
 			);
-			// console.error('Error loading vehicle details:', error);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	const saveVehicleDetails = async () => {
-		try {
-			await AsyncStorage.setItem(VEHICLE_DETAILS_KEY, JSON.stringify(vehicleDetails));
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while saving vehicle details.'
-			);
-			// console.error('Error saving vehicle details:', error);
-		}
-	};
+
 
 	const updateCompletionStatus = async () => {
 		try {
@@ -78,7 +73,6 @@ export default function VehicleDetailsPage() {
 					? error.message
 					: 'An error occurred while updating completion status.'
 			);
-			// console.error('Error updating completion status:', error);
 		}
 	};
 
@@ -99,29 +93,71 @@ export default function VehicleDetailsPage() {
 		setIsSaving(true);
 
 		try {
-			await saveVehicleDetails();
-			await updateCompletionStatus();
+			// Ensure phone number has +91 prefix
+			const formattedPhoneNumber = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+			
+			// Prepare the data for API call
+			const apiPayload = {
+				phoneNumber: formattedPhoneNumber,
+				vehicleType: vehicleDetails.vehicleType,
+				model: vehicleDetails.model,
+				manufacturer: vehicleDetails.manufacturer,
+				color: vehicleDetails.color,
+				plateNumber: vehicleDetails.plateNumber.toUpperCase(),
+				yearOfManufacture: parseInt(vehicleDetails.yearOfManufacture, 10),
+				rcFrontImage: "https://example.com/rc-front.jpg",
+				rcBackImage: "https://example.com/rc-back.jpg",
+				insuranceImage: "https://example.com/insurance.jpg",
+			};
 
-			// Simulate save delay for better UX
-			setTimeout(() => {
-				setIsSaving(false);
+			console.log('API Payload:', JSON.stringify(apiPayload, null, 2));
+			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+			if (!baseUrl) {
+				throw new Error('Backend URL not configured');
+			}
+			const responses = await fetch(`${baseUrl}/api/auth/vehicle-details`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(apiPayload),
+			});
+
+			const response = await responses.json();
+			console.log('API Response:', response);
+			if (response.success) {
+				// Update local completion status
+				await updateCompletionStatus();
+
+				// Show success message and navigate
 				Alert.alert('Success', 'Vehicle details saved successfully', [
 					{
 						text: 'OK',
 						onPress: () => navigation.navigate({ name: 'Details' } as never),
 					},
 				]);
-			}, 1500);
+			} else {
+				throw new Error(response.message || 'Failed to save vehicle details');
+			}
 		} catch (error) {
-			setIsSaving(false);
 			setErrorMsg(
 				error instanceof Error ? error.message : 'An error occurred while saving vehicle details.'
 			);
-			// Alert.alert('Error', 'Failed to save vehicle details. Please try again.');
+		} finally {
+			setIsSaving(false);
 		}
 	};
 
-	const isButtonDisabled = !isFormValid() || isSaving;
+	const isButtonDisabled = !isFormValid() || isSaving || isLoading;
+
+	if (isLoading) {
+		return (
+			<View className="h-full flex-col bg-white justify-center items-center">
+				<ActivityIndicator size="large" color="#007AFF" />
+				<Text className="mt-4 text-gray-600">Loading...</Text>
+			</View>
+		);
+	}
 
 	return (
 		<View className="h-full flex-col bg-white">
@@ -149,8 +185,8 @@ export default function VehicleDetailsPage() {
 					<Input
 						label="Vehicle Type"
 						placeholder="e.g., Car, Motorcycle, Scooter"
-						value={vehicleDetails.type}
-						onChange={(value) => handleChange('type', value)}
+						value={vehicleDetails.vehicleType}
+						onChange={(value) => handleChange('vehicleType', value)}
 					/>
 
 					<View style={{ height: 10 }} />

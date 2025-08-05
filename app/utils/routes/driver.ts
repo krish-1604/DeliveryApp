@@ -128,10 +128,10 @@ export class DriverAPI {
 		this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 	}
 
-	setDriverHeaders(driverId: string, phoneNumber: string): void {
-		this.api.defaults.headers.common['x-driver-id'] = driverId;
-		this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
-	}
+	// setDriverHeaders(driverId: string, phoneNumber: string): void {
+	// 	this.api.defaults.headers.common['x-driver-id'] = driverId;
+	// 	this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
+	// }
 
 	clearAuth(): void {
 		delete this.api.defaults.headers.common['Authorization'];
@@ -260,10 +260,9 @@ export class DriverAPI {
 	}
 
 	async updateVehicleDetails(
-		id: string,
 		vehicleData: Partial<VehicleDetails>
 	): Promise<ApiResponse<VehicleDetails>> {
-		const response: AxiosResponse = await this.api.put(`/api/drivers/${id}/vehicle`, vehicleData);
+		const response: AxiosResponse = await this.api.put(`/api/auth/vehicle-details`, vehicleData);
 		return response.data;
 	}
 
