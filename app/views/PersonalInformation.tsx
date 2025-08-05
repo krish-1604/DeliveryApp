@@ -68,7 +68,6 @@ const PersonalInformationForm: React.FC = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
-
 	const insets = useSafeAreaInsets();
 	const driverAPI = new DriverAPI();
 
@@ -100,15 +99,28 @@ const PersonalInformationForm: React.FC = () => {
 
 	useEffect(() => {
 		setupAPIAuth();
+		loadPhoneNumber();
 	}, []);
+
+	const loadPhoneNumber = async () => {
+		try {
+			const storedPhoneNumber = await AsyncStorage.getItem('phoneNumber');
+			if (storedPhoneNumber) {
+				// Remove +91 prefix if present and keep only 10 digits
+				const cleanPhone = storedPhoneNumber.replace(/^\+91/, '').replace(/\D/g, '');
+				setFormData(prev => ({ ...prev, primaryMobile: cleanPhone }));
+			}
+		} catch (error) {
+			console.error('Error loading phone number from AsyncStorage:', error);
+		}
+	};
 
 	const setupAPIAuth = async () => {
 		try {
 			// Get stored auth token and driver info
 			const token = await AsyncStorage.getItem('auth_token');
 			const driverId = await AsyncStorage.getItem('driver_id');
-			const phoneNumber = await AsyncStorage.getItem('phone_number');
-
+			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
 			if (token) {
 				driverAPI.setBearer(token);
 			}
@@ -194,24 +206,45 @@ const PersonalInformationForm: React.FC = () => {
 	};
 
 	const pickImage = async () => {
-		const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+	const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-		if (permissionResult.granted === false) {
-			Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+	if (permissionResult.granted === false) {
+		Alert.alert('Permission Required', 'Permission to access camera roll is required!');
+		return;
+	}
+
+	const result = await ImagePicker.launchImageLibraryAsync({
+		mediaTypes: ImagePicker.MediaTypeOptions.Images,
+		allowsEditing: true,
+		aspect: [1, 1],
+		quality: 0.8, // Slightly reduced quality to optimize file size
+		allowsMultipleSelection: false, // Ensure single selection
+		selectionLimit: 1,
+		// Enable both JPEG and PNG formats
+		presentationStyle: ImagePicker.UIImagePickerPresentationStyle.POPOVER,
+	});
+
+	if (!result.canceled && result.assets && result.assets.length > 0) {
+		const selectedImage = result.assets[0];
+		
+		// Validate file size (optional - 5MB limit)
+		if (selectedImage.fileSize && selectedImage.fileSize > 5 * 1024 * 1024) {
+			Alert.alert('File Size Error', 'Image size should be less than 5MB. Please select a smaller image.');
 			return;
 		}
 
-		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.Images,
-			allowsEditing: true,
-			aspect: [1, 1],
-			quality: 1,
-		});
-
-		if (!result.canceled) {
-			updateFormData('profileImage', result.assets[0].uri);
+		// Validate image format (optional)
+		const validFormats = ['jpg', 'jpeg', 'png'];
+		const fileExtension = selectedImage.uri.split('.').pop()?.toLowerCase();
+		
+		if (fileExtension && !validFormats.includes(fileExtension)) {
+			Alert.alert('Format Error', 'Please select a JPEG or PNG image.');
+			return;
 		}
-	};
+
+		updateFormData('profileImage', selectedImage.uri);
+	}
+};
 
 	const validateForm = (): boolean => {
 		if (!isFormValid()) {
@@ -239,44 +272,71 @@ const PersonalInformationForm: React.FC = () => {
 	};
 
 	const submitToAPI = async (): Promise<boolean> => {
-		try {
-			setIsSubmitting(true);
+	try {
+		setIsSubmitting(true);
 
-			// Format phone number - ensure it starts with +91
-			const formatPhoneNumber = (phone: string) => {
-				const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
-				if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
-					return `+${cleanPhone}`;
-				} else if (cleanPhone.length === 10) {
-					return `+91${cleanPhone}`;
-				}
+		// Format phone number - ensure it starts with +91
+		const formatPhoneNumber = (phone: string) => {
+			const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
+			if (cleanPhone.startsWith('91') && cleanPhone.length === 12) {
+				return `+${cleanPhone}`;
+			} else if (cleanPhone.length === 10) {
 				return `+91${cleanPhone}`;
+			}
+			return `+91${cleanPhone}`;
+		};
+
+		// Create FormData for multipart/form-data submission
+		const formDataToSend = new FormData();
+
+		// Add basic form fields
+		formDataToSend.append('phoneNumber', formatPhoneNumber(formData.primaryMobile));
+		formDataToSend.append('firstName', formData.firstName.trim());
+		formDataToSend.append('lastName', formData.lastName.trim());
+		formDataToSend.append('fatherName', formData.fatherName.trim());
+		formDataToSend.append('dateOfBirth', formData.dateOfBirth);
+		formDataToSend.append('address', formData.address.trim());
+		formDataToSend.append('language', formData.languages.join(','));
+		formDataToSend.append('bloodGroup', formData.bloodGroup);
+
+		// Add optional fields only if they exist
+		if (formData.whatsappNumber) {
+			formDataToSend.append('whatsappNumber', formatPhoneNumber(formData.whatsappNumber));
+		}
+		if (formData.secondaryMobile) {
+			formDataToSend.append('secondaryNumber', formatPhoneNumber(formData.secondaryMobile));
+		}
+		if (formData.referralCode) {
+			formDataToSend.append('referralCode', formData.referralCode.trim());
+		}
+		// Handle profile image as file
+		if (formData.profileImage) {
+			// Extract filename from URI or create a default one
+			const uriParts = formData.profileImage.split('/');
+			const fileName = uriParts[uriParts.length - 1] || 'profile-image.jpg';
+			
+			// Detect image type from filename or URI
+			const getImageType = (uri: string): string => {
+				const extension = uri.split('.').pop()?.toLowerCase();
+				return extension === 'png' ? 'image/png' : 'image/jpeg';
 			};
+			
+			// Create file object for React Native
+			const imageFile = {
+				uri: formData.profileImage,
+				type: getImageType(formData.profileImage),
+				name: fileName,
+			} as any; // TypeScript workaround for FormData.append
 
-			// Prepare data for API
-			const apiData = {
-				phoneNumber: formatPhoneNumber(formData.primaryMobile),
-				firstName: formData.firstName.trim(),
-				lastName: formData.lastName.trim(),
-				fatherName: formData.fatherName.trim(),
-				dateOfBirth: formData.dateOfBirth,
-				whatsappNumber: formData.whatsappNumber
-					? formatPhoneNumber(formData.whatsappNumber)
-					: undefined,
-				secondaryNumber: formData.secondaryMobile
-					? formatPhoneNumber(formData.secondaryMobile)
-					: undefined,
-				address: formData.address.trim(),
-				language: formData.languages.join(','), // Convert array to comma-separated string
-				bloodGroup: formData.bloodGroup,
-			};
-			await AsyncStorage.setItem('phoneNumber', apiData.phoneNumber);
-			// Log the data being sent for debugging
-			console.log('Submitting API data:', JSON.stringify(apiData, null, 2));
+			formDataToSend.append('profileImage', imageFile);
+		}
 
-			const response = await driverAPI.submitPersonalInformation(apiData);
+		// Log the data being sent for debugging (Note: FormData entries aren't directly loggable)
+		console.log('Submitting form data with profile image as file');
+		// Call API with FormData
+		const response = await driverAPI.submitPersonalInformationWithFile(formDataToSend);
 
-			console.log('API response:', response);
+		console.log('API response:', response);
 
 			if (response.success) {
 				console.log(response.driver.id);
@@ -311,10 +371,34 @@ const PersonalInformationForm: React.FC = () => {
 				setErrorMsg(error.message || 'Network error. Please try again.');
 			}
 			return false;
-		} finally {
-			setIsSubmitting(false);
 		}
-	};
+	} catch (error: any) {
+		console.error('API submission error:', error);
+		
+		// More detailed error logging
+		if (error.response) {
+			console.error('Error response data:', error.response.data);
+			console.error('Error response status:', error.response.status);
+			console.error('Error response headers:', error.response.headers);
+			
+			// Try to extract meaningful error message from response
+			const errorMessage = error.response.data?.message || 
+							   error.response.data?.error || 
+							   error.response.data?.details ||
+							   `Server error: ${error.response.status}`;
+			setErrorMsg(errorMessage);
+		} else if (error.request) {
+			console.error('No response received:', error.request);
+			setErrorMsg('No response from server. Please check your internet connection.');
+		} else {
+			console.error('Error setting up request:', error.message);
+			setErrorMsg(error.message || 'Network error. Please try again.');
+		}
+		return false;
+	} finally {
+		setIsSubmitting(false);
+	}
+};
 
 	const handleSubmit = async () => {
 		if (!validateForm()) {
@@ -475,21 +559,22 @@ const PersonalInformationForm: React.FC = () => {
 						</TouchableOpacity>
 					</View>
 
-					{/* Primary Mobile Number */}
+					{/* Primary Mobile Number - Read Only */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Primary mobile number</Text>
-						<TextInput
-							style={[styles.input, focusedField === 'primaryMobile' && styles.focusedInput]}
-							placeholder="Enter 10 digit mobile number"
-							value={formData.primaryMobile}
-							onChangeText={(text) => updateFormData('primaryMobile', text)}
-							onFocus={() => setFocusedField('primaryMobile')}
-							onBlur={() => setFocusedField(null)}
-							keyboardType="numeric"
-							maxLength={10}
-							placeholderTextColor="#999"
-							editable={!isSubmitting}
-						/>
+						<View style={styles.readOnlyInputContainer}>
+							<TextInput
+								style={[styles.input, styles.readOnlyInput]}
+								value={formData.primaryMobile}
+								editable={false}
+								selectTextOnFocus={false}
+								placeholderTextColor="#999"
+							/>
+							<View style={styles.lockIconContainer}>
+								<Ionicons name="lock-closed" size={16} color="#999" />
+							</View>
+						</View>
+						<Text style={styles.readOnlyHint}>This number cannot be changed</Text>
 					</View>
 
 					{/* WhatsApp Number */}
@@ -936,6 +1021,25 @@ const styles = StyleSheet.create({
 	disabledSubmitButtonText: {
 		color: '#666666',
 	},
+	readOnlyInput: {
+	backgroundColor: '#F5F5F5', // light grey background
+	color: '#666',              // dimmed text
+},
+readOnlyInputContainer: {
+	position: 'relative',
+},
+lockIconContainer: {
+	position: 'absolute',
+	right: 12,
+	top: '50%',
+	transform: [{ translateY: -8 }],
+},
+readOnlyHint: {
+	marginTop: 4,
+	fontSize: 12,
+	color: '#999',
+},
+
 });
 
 export default PersonalInformationForm;

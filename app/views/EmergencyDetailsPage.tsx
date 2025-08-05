@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ButtonOpacity } from '../components/button';
@@ -7,7 +7,7 @@ import { Input } from '../components/input';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import ErrorToast from '../components/error';
 
-const EMERGENCY_DETAILS_KEY = 'emergency_details';
+const PHONE_NUMBER_KEY = 'phoneNumber';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 interface EmergencyDetails {
@@ -36,38 +36,7 @@ export default function EmergencyDetailsPage() {
 		allergies: '',
 	});
 	const [errorMsg, setErrorMsg] = useState('');
-	// Load saved emergency details on component mount
-	useEffect(() => {
-		loadEmergencyDetails();
-	}, []);
-
-	const loadEmergencyDetails = async () => {
-		try {
-			const savedDetails = await AsyncStorage.getItem(EMERGENCY_DETAILS_KEY);
-			if (savedDetails) {
-				const parsedDetails = JSON.parse(savedDetails);
-				setEmergencyContacts(parsedDetails);
-			}
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error
-					? error.message
-					: 'An error occurred while loading emergency details.'
-			);
-			// console.error('Error loading emergency details:', error);
-		}
-	};
-
-	const saveEmergencyDetails = async () => {
-		try {
-			await AsyncStorage.setItem(EMERGENCY_DETAILS_KEY, JSON.stringify(emergencyContacts));
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while saving emergency details.'
-			);
-			// console.error('Error saving emergency details:', error);
-		}
-	};
+	const [isLoading, setIsLoading] = useState(false);
 
 	const updateCompletionStatus = async () => {
 		try {
@@ -92,7 +61,71 @@ export default function EmergencyDetailsPage() {
 					? error.message
 					: 'An error occurred while updating completion status.'
 			);
-			// console.error('Error updating completion status:', error);
+		}
+	};
+
+	const getPhoneNumber = async () => {
+		try {
+			const phoneNumber = await AsyncStorage.getItem(PHONE_NUMBER_KEY);
+			if (!phoneNumber) {
+				throw new Error('Phone number not found');
+			}
+			
+			// Add +91 if it doesn't exist
+			return phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+		} catch (error) {
+			throw new Error('Failed to retrieve phone number');
+		}
+	};
+
+	const submitEmergencyDetailsToAPI = async () => {
+		try {
+			const phoneNumber = await getPhoneNumber();
+			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+			
+			if (!baseUrl) {
+				throw new Error('Backend URL not configured');
+			}
+
+			const requestBody = {
+				phoneNumber: phoneNumber,
+				primaryContactName: emergencyContacts.primaryContactName,
+				primaryContactRelationship: emergencyContacts.primaryContactRelation,
+				primaryContactPhone: emergencyContacts.primaryContactPhone.startsWith('+91') 
+					? emergencyContacts.primaryContactPhone 
+					: `+91${emergencyContacts.primaryContactPhone}`,
+				secondaryContactName: emergencyContacts.secondaryContactName,
+				secondaryContactRelationship: emergencyContacts.secondaryContactRelation,
+				secondaryContactPhone: emergencyContacts.secondaryContactPhone 
+					? (emergencyContacts.secondaryContactPhone.startsWith('+91') 
+						? emergencyContacts.secondaryContactPhone 
+						: `+91${emergencyContacts.secondaryContactPhone}`)
+					: '',
+				medicalBloodGroup: emergencyContacts.bloodGroup,
+				medicalConditions: emergencyContacts.medicalConditions,
+				allergies: emergencyContacts.allergies,
+			};
+
+			const response = await fetch(`${baseUrl}/api/auth/emergency-details`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(requestBody),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.message || `Server error: ${response.status} ${response.statusText}`);
+			}
+
+			const responseData = await response.json();
+			return responseData;
+		} catch (error) {
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error('Failed to submit emergency details to server');
 		}
 	};
 
@@ -117,9 +150,14 @@ export default function EmergencyDetailsPage() {
 			return;
 		}
 
+		setIsLoading(true);
 		try {
-			await saveEmergencyDetails();
+			// Submit to API
+			await submitEmergencyDetailsToAPI();
+			
+			// Update completion status after successful API call
 			await updateCompletionStatus();
+			
 			Alert.alert('Success', 'Emergency contact details saved successfully', [
 				{
 					text: 'OK',
@@ -127,10 +165,20 @@ export default function EmergencyDetailsPage() {
 				},
 			]);
 		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while saving emergency details.'
-			);
-			// Alert.alert('Error', 'Failed to save emergency details. Please try again.');
+			let errorMessage = 'Failed to save emergency details. Please try again.';
+			
+			if (error instanceof Error) {
+				errorMessage = error.message;
+			}
+			
+			setErrorMsg(errorMessage);
+			
+			// Show alert for critical errors
+			if (errorMessage.includes('Phone number not found') || errorMessage.includes('Backend URL not configured')) {
+				Alert.alert('Configuration Error', errorMessage);
+			}
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -249,15 +297,15 @@ export default function EmergencyDetailsPage() {
 				<View className="mb-8">
 					<ButtonOpacity
 						onPress={handleSave}
-						disabled={!isFormValid()}
-						className={`${!isFormValid() ? 'bg-gray-400' : 'bg-primary'}`}
+						disabled={!isFormValid() || isLoading}
+						className={`${!isFormValid() || isLoading ? 'bg-gray-400' : 'bg-primary'}`}
 					>
 						<Text
 							className={`font-medium text-xl py-2 ${
-								!isFormValid() ? 'text-gray-600' : 'text-white'
+								!isFormValid() || isLoading ? 'text-gray-600' : 'text-white'
 							}`}
 						>
-							Save Details
+							{isLoading ? 'Saving...' : 'Save Details'}
 						</Text>
 					</ButtonOpacity>
 				</View>
