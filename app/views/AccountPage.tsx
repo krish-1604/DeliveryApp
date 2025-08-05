@@ -3,10 +3,11 @@ import { View, Text, Image, TouchableOpacity, SafeAreaView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../utils/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function AccountPage() {
 	const navigation = useNavigation<NavigationProp<'Account'>>();
 
-	const handleMenuPress = (title: string) => {
+	const handleMenuPress = async (title: string) => {
 		switch (title) {
 		case 'Edit Profile':
 		case 'Allotted Area':
@@ -19,8 +20,16 @@ export default function AccountPage() {
 			navigation.navigate(title);
 			break;
 		case 'Log Out':
-			// console.log('Handle Log Out');
-			break;
+			try {
+				await AsyncStorage.clear(); // Clear all keys
+				navigation.reset({
+					index: 0,
+					routes: [{ name: 'Phone' }],
+				});
+			} catch (error) {
+				console.error('Failed to log out:', error);
+			}
+  			break;
 		}
 	};
 

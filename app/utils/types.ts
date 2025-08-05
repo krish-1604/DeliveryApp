@@ -76,7 +76,7 @@ export type RootStackParamList = {
 	Account: undefined;
 	Leave: undefined;
 	Map: undefined;
-
+	MainTabs: undefined;
 	// Account-specific screens
 	'Edit Profile': undefined;
 	'Allotted Area': undefined;

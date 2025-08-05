@@ -213,7 +213,7 @@ export default function FinalDetailsPage() {
 					</>
 				)}
 
-				<View style={{ height: 100 }} />
+				<View style={{ height: 50 }} />
 
 				<View className="flex-col flex-shrink py-5 px-5">
 					<ButtonOpacity

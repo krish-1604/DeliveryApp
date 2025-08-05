@@ -1,62 +1,3 @@
-// import FontAwesome from '@expo/vector-icons/FontAwesome';
-// import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-// import { useFonts } from 'expo-font';
-// import { Stack } from 'expo-router';
-// import * as SplashScreen from 'expo-splash-screen';
-// import { useEffect } from 'react';
-// import 'react-native-reanimated';
-
-// import { useColorScheme } from 'react-native';
-
-// export {
-// 	// Catch any errors thrown by the Layout component.
-// 	ErrorBoundary,
-// } from 'expo-router';
-
-// export const unstable_settings = {
-// 	// Ensure that reloading on `/modal` keeps a back button present.
-// 	initialRouteName: '(tabs)',
-// };
-
-// // Prevent the splash screen from auto-hiding before asset loading is complete.
-// SplashScreen.preventAutoHideAsync();
-
-// export default function RootLayout() {
-// 	const [loaded, error] = useFonts({
-// 		SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-// 		...FontAwesome.font,
-// 	});
-
-// 	// Expo Router uses Error Boundaries to catch errors in the navigation tree.
-// 	useEffect(() => {
-// 		if (error) throw error;
-// 	}, [error]);
-
-// 	useEffect(() => {
-// 		if (loaded) {
-// 			SplashScreen.hideAsync();
-// 		}
-// 	}, [loaded]);
-
-// 	if (!loaded) {
-// 		return null;
-// 	}
-
-// 	return <RootLayoutNav />;
-// }
-
-// function RootLayoutNav() {
-// 	const colorScheme = useColorScheme();
-
-// 	return (
-// 		<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-// 			<Stack>
-// 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-// 				<Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-// 			</Stack>
-// 		</ThemeProvider>
-// 	);
-// }
 import React, { useEffect, useState } from 'react';
 import '../global.css';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -65,7 +6,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-// Screens
 import AadhaarCardDetails from './views/AadhaarCardDetails';
 import LeaveSubmittedPage from './views/LeaveSubmittedPage';
 import OrdersScreen from './views/OrdersScreen';
@@ -90,7 +30,7 @@ function MainTabs() {
 		<Tab.Navigator
 			screenOptions={({ route }) => ({
 				headerShown: false,
-				tabBarActiveTintColor: '#FAA41A', // yellow
+				tabBarActiveTintColor: '#FAA41A',
 				tabBarInactiveTintColor: 'gray',
 				tabBarIcon: ({ color, size }) => {
 					let iconName: keyof typeof Ionicons.glyphMap = 'home';
@@ -112,20 +52,33 @@ export default function RootLayout() {
 	const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
 	useEffect(() => {
-		const checkVerification = async () => {
+		const determineInitialRoute = async () => {
 			try {
-				const isVerified = await AsyncStorage.getItem('isVerified');
-				if (isVerified === 'true') {
+				const [isVerified, authToken, driverId] = await AsyncStorage.multiGet([
+					'isVerified',
+					'authToken',
+					'driverId'
+				]);
+
+				const hasVerification = isVerified[1] === 'true';
+				const hasAuth = authToken[1] !== null;
+				const hasDriverId = driverId[1] !== null;
+
+				if (hasVerification && hasAuth && hasDriverId) {
 					setInitialRoute('MainTabs');
+				} else if (hasDriverId && hasAuth) {
+					setInitialRoute('PersonalInformation');
 				} else {
+					await AsyncStorage.multiRemove(['isVerified', 'authToken', 'driverId', 'userProfile']);
 					setInitialRoute('Phone');
 				}
 			} catch {
+				await AsyncStorage.clear();
 				setInitialRoute('Phone');
 			}
 		};
 
-		checkVerification();
+		determineInitialRoute();
 	}, []);
 
 	if (!initialRoute) {
@@ -138,7 +91,7 @@ export default function RootLayout() {
 					backgroundColor: 'white',
 				}}
 			>
-				<ActivityIndicator size="large" color="#000" />
+				<ActivityIndicator size="large" color="#FAA41A" />
 			</SafeAreaView>
 		);
 	}

@@ -45,27 +45,44 @@ const VerifyScreen = () => {
 			Alert.alert('Error', 'Phone number not found');
 			return;
 		}
-		// if (otpValues === '123456') {
-		// 	await AsyncStorage.setItem('driverId', 'bypass-driver-id');
-		// 	navigation.navigate('PersonalInformation');
-		// 	return;
-		// }
+
 		try {
 			setVerifying(true);
 			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 			const api = new DriverAPI();
 			const response = await api.verifyOTP(formatted, otpValues);
-
-			if (response.success && response.data?.driverId) {
-				await AsyncStorage.setItem('driverId', response.data.driverId);
-				navigation.navigate('PersonalInformation');
+			console.log('Verification response:', response);
+			if (response.success) {
+				if (response.userExists && response.isCompletelyVerified) {
+					await AsyncStorage.multiSet([
+						['driverId', response.driver.id],
+						['isVerified', 'true'],
+						['authToken', response.token],
+						['userProfile', JSON.stringify({
+							firstName: response.driver.firstName,
+							lastName: response.driver.lastName,
+							phoneNumber: response.driver.phoneNumber,
+							profilePicture: response.driver.profilePicture
+						})]
+					]);
+					navigation.navigate('MainTabs');
+				} else if (response.userExists && !response.isCompletelyVerified) {
+					await AsyncStorage.multiSet([
+						['driverId', response.driver.id],
+						['userProfile', JSON.stringify({
+							firstName: response.driver.firstName,
+							lastName: response.driver.lastName,
+							phoneNumber: response.driver.phoneNumber,
+							profilePicture: response.driver.profilePicture
+						})]
+					]);
+					navigation.navigate('Details');
+				} else {
+					await AsyncStorage.removeItem('phoneNumber');
+					navigation.navigate('PersonalInformation');
+				}
 			} else {
-				//if (response.requiresOnboarding == true) {
-				//console.log('bullshit');
-				navigation.navigate('PersonalInformation');
-				//} else {
-				//	Alert.alert('Verification Failed', response.message || 'Invalid OTP');
-				//}
+				Alert.alert('Verification Failed', response.message || 'Invalid OTP');
 			}
 		} catch (err: unknown) {
 			if ((err as AxiosError)?.response?.status === 400) {

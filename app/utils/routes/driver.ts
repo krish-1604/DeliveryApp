@@ -128,10 +128,10 @@ export class DriverAPI {
 		this.api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 	}
 
-	setDriverHeaders(driverId: string, phoneNumber: string): void {
-		this.api.defaults.headers.common['x-driver-id'] = driverId;
-		this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
-	}
+	// setDriverHeaders(driverId: string, phoneNumber: string): void {
+	// 	this.api.defaults.headers.common['x-driver-id'] = driverId;
+	// 	this.api.defaults.headers.common['x-phone-number'] = phoneNumber;
+	// }
 
 	clearAuth(): void {
 		delete this.api.defaults.headers.common['Authorization'];
@@ -151,14 +151,42 @@ export class DriverAPI {
 		});
 		return response.data;
 	}
-
-	async verifyOTP(phoneNumber: string, code: string): Promise<ApiResponse<{ driverId: string }>> {
-		const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
-			phoneNumber,
-			code,
-		});
+	async submitPersonalInformation(personalData: {
+		phoneNumber: string;
+		firstName: string;
+		lastName: string;
+		fatherName: string;
+		dateOfBirth: string;
+		whatsappNumber?: string;
+		secondaryNumber?: string;
+		address: string;
+		language: string;
+		bloodGroup: string;
+	}): Promise<ApiResponse> {
+		const response: AxiosResponse = await this.api.post('/api/auth/personal-info', personalData);
 		return response.data;
 	}
+	async verifyOTP(phoneNumber: string, code: string): Promise<{
+	success: boolean;
+	message: string;
+	userExists: boolean;
+	isCompletelyVerified: boolean;
+	token: string;
+	driver: {
+		id: string;
+		phoneNumber: string;
+		firstName: string;
+		lastName: string;
+		profilePicture: string | null;
+	};
+}> {
+	const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
+		phoneNumber,
+		code,
+	});
+	return response.data;
+}
+
 
 	async adminLogin(
 		email: string,
@@ -232,10 +260,9 @@ export class DriverAPI {
 	}
 
 	async updateVehicleDetails(
-		id: string,
 		vehicleData: Partial<VehicleDetails>
 	): Promise<ApiResponse<VehicleDetails>> {
-		const response: AxiosResponse = await this.api.put(`/api/drivers/${id}/vehicle`, vehicleData);
+		const response: AxiosResponse = await this.api.put(`/api/auth/vehicle-details`, vehicleData);
 		return response.data;
 	}
 
