@@ -118,7 +118,8 @@ const VerifyScreen = () => {
 				<Text className="text-text text-lg">
 					A 6 digit OTP has been sent to your phone number +91 {phoneNumber}.
 					<Text className="text-primary font-semibold" onPress={() => navigation.goBack()}>
-						{' '}Change
+						{' '}
+						Change
 					</Text>
 				</Text>
 			</View>

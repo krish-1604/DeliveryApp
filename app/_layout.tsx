@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import '../global.css';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView, ActivityIndicator } from 'react-native';
+import { SafeAreaView, ActivityIndicator, Platform, View } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -96,8 +96,11 @@ export default function RootLayout() {
 		);
 	}
 
+	const isAndroid = Platform.OS === 'android';
+	const Container = isAndroid ? SafeAreaView : View;
+
 	return (
-		<SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+		<Container style={{ flex: 1, backgroundColor: 'white' }}>
 			<Stack.Navigator
 				initialRouteName={initialRoute}
 				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
@@ -118,6 +121,6 @@ export default function RootLayout() {
 				<Stack.Screen name="MainTabs" component={MainTabs} />
 				<Stack.Screen name="Orders" component={OrdersScreen} />
 			</Stack.Navigator>
-		</SafeAreaView>
+		</Container>
 	);
 }
