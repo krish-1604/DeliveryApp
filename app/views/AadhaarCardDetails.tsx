@@ -17,6 +17,9 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp, RootStackParamList } from '@/app/utils/types';
 import ErrorToast from '../components/error';
+import { DriverAPI } from '@/app/utils/routes/driver';
+import { saveImage } from '@/app/utils/imageStorage';
+import * as Device from 'expo-device';
 
 type AadhaarRouteProp = RouteProp<RootStackParamList, 'Aadhaar'>;
 
@@ -76,33 +79,56 @@ export default function AadhaarCardDetails() {
 
 	const getDocumentKey = (documentType: string): keyof DocumentsStatus => {
 		switch (documentType) {
-		case 'Aadhar Card':
-			return 'aadhaarCard';
-		case 'PAN Card':
-			return 'panCard';
-		case 'Driving License':
-			return 'drivingLicense';
-		default:
-			return 'aadhaarCard';
+			case 'Aadhar Card':
+				return 'aadhaarCard';
+			case 'PAN Card':
+				return 'panCard';
+			case 'Driving License':
+				return 'drivingLicense';
+			default:
+				return 'aadhaarCard';
 		}
 	};
 
 	const handlePhotoUpload = async (
 		setPhoto: React.Dispatch<React.SetStateAction<string | null>>
 	) => {
-		const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-		if (!permissionResult.granted) {
-			Alert.alert('Permission Required', 'Camera access is required to upload photos.');
-			return;
-		}
-		const result = await ImagePicker.launchCameraAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.Images,
-			allowsEditing: true,
-			aspect: [4, 3],
-			quality: 1,
-		});
-		if (!result.canceled && result.assets?.length) {
-			setPhoto(result.assets[0].uri);
+		const isSimulator = Platform.OS === 'ios' && !Device.isDevice;
+
+		try {
+			if (isSimulator) {
+				const result = await ImagePicker.launchImageLibraryAsync({
+					mediaTypes: ImagePicker.MediaTypeOptions.Images,
+					allowsEditing: true,
+					aspect: [4, 3],
+					quality: 1,
+				});
+				if (!result.canceled && result.assets?.length) {
+					setPhoto(result.assets[0].uri);
+				}
+				return;
+			}
+
+			const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+			if (!permissionResult.granted) {
+				Alert.alert('Permission Required', 'Camera access is required to upload photos.');
+				return;
+			}
+
+			const result = await ImagePicker.launchCameraAsync({
+				mediaTypes: ImagePicker.MediaTypeOptions.Images,
+				allowsEditing: true,
+				aspect: [4, 3],
+				quality: 1,
+			});
+
+			if (!result.canceled && result.assets?.length) {
+				setPhoto(result.assets[0].uri);
+			}
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while picking the photo.'
+			);
 		}
 	};
 
@@ -111,6 +137,7 @@ export default function AadhaarCardDetails() {
 	};
 
 	const handleContinue = async () => {
+		//const driverID = await AsyncStorage.getItem('driverId');
 		if (frontPhoto && backPhoto) {
 			try {
 				// Update the documents status for the current document type
@@ -119,10 +146,15 @@ export default function AadhaarCardDetails() {
 					...documentsStatus,
 					[documentKey]: true,
 				};
-
 				setDocumentsStatus(newStatus);
+				console.log(documentKey);
 				await saveDocumentsStatus(newStatus);
-
+				const uri1 = await saveImage(frontPhoto, documentKey, 'front');
+				const uri2 = await saveImage(backPhoto, documentKey, 'back');
+				await AsyncStorage.multiSet([
+					[`${documentKey}_frontPhoto`, uri1],
+					[`${documentKey}_backPhoto`, uri2],
+				]);
 				Alert.alert('Success', `${text} uploaded successfully!`, [
 					{
 						text: 'OK',
@@ -130,6 +162,7 @@ export default function AadhaarCardDetails() {
 					},
 				]);
 			} catch (error) {
+				console.log(error);
 				Alert.alert(
 					'Error',
 					error instanceof Error ? error.message : 'An error occurred while saving the document.'

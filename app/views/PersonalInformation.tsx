@@ -260,13 +260,17 @@ const PersonalInformationForm: React.FC = () => {
 				lastName: formData.lastName.trim(),
 				fatherName: formData.fatherName.trim(),
 				dateOfBirth: formData.dateOfBirth,
-				whatsappNumber: formData.whatsappNumber ? formatPhoneNumber(formData.whatsappNumber) : undefined,
-				secondaryNumber: formData.secondaryMobile ? formatPhoneNumber(formData.secondaryMobile) : undefined,
+				whatsappNumber: formData.whatsappNumber
+					? formatPhoneNumber(formData.whatsappNumber)
+					: undefined,
+				secondaryNumber: formData.secondaryMobile
+					? formatPhoneNumber(formData.secondaryMobile)
+					: undefined,
 				address: formData.address.trim(),
 				language: formData.languages.join(','), // Convert array to comma-separated string
 				bloodGroup: formData.bloodGroup,
 			};
-
+			await AsyncStorage.setItem('phoneNumber', apiData.phoneNumber);
 			// Log the data being sent for debugging
 			console.log('Submitting API data:', JSON.stringify(apiData, null, 2));
 
@@ -275,6 +279,8 @@ const PersonalInformationForm: React.FC = () => {
 			console.log('API response:', response);
 
 			if (response.success) {
+				console.log(response.driver.id);
+				await AsyncStorage.setItem('driverID', response.driver.id);
 				return true;
 			} else {
 				console.error('API returned error:', response);
@@ -283,18 +289,19 @@ const PersonalInformationForm: React.FC = () => {
 			}
 		} catch (error: any) {
 			console.error('API submission error:', error);
-			
+
 			// More detailed error logging
 			if (error.response) {
 				console.error('Error response data:', error.response.data);
 				console.error('Error response status:', error.response.status);
 				console.error('Error response headers:', error.response.headers);
-				
+
 				// Try to extract meaningful error message from response
-				const errorMessage = error.response.data?.message || 
-								   error.response.data?.error || 
-								   error.response.data?.details ||
-								   `Server error: ${error.response.status}`;
+				const errorMessage =
+					error.response.data?.message ||
+					error.response.data?.error ||
+					error.response.data?.details ||
+					`Server error: ${error.response.status}`;
 				setErrorMsg(errorMessage);
 			} else if (error.request) {
 				console.error('No response received:', error.request);
@@ -317,7 +324,7 @@ const PersonalInformationForm: React.FC = () => {
 		try {
 			// Submit to API
 			const apiSuccess = await submitToAPI();
-			
+
 			if (apiSuccess) {
 				Alert.alert('Success', 'Personal information submitted successfully!', [
 					{
@@ -604,8 +611,8 @@ const PersonalInformationForm: React.FC = () => {
 					{/* Profile Picture */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Your Profile Picture</Text>
-						<TouchableOpacity 
-							style={styles.uploadButton} 
+						<TouchableOpacity
+							style={styles.uploadButton}
 							onPress={pickImage}
 							disabled={isSubmitting}
 						>
@@ -638,16 +645,16 @@ const PersonalInformationForm: React.FC = () => {
 					{/* Submit Button */}
 					<TouchableOpacity
 						style={[
-							styles.submitButton, 
-							(!isFormValid() || isSubmitting) && styles.disabledSubmitButton
+							styles.submitButton,
+							(!isFormValid() || isSubmitting) && styles.disabledSubmitButton,
 						]}
 						onPress={handleSubmit}
 						disabled={!isFormValid() || isSubmitting}
 					>
 						<Text
 							style={[
-								styles.submitButtonText, 
-								(!isFormValid() || isSubmitting) && styles.disabledSubmitButtonText
+								styles.submitButtonText,
+								(!isFormValid() || isSubmitting) && styles.disabledSubmitButtonText,
 							]}
 						>
 							{isSubmitting ? 'Submitting...' : 'Submit'}
