@@ -39,6 +39,15 @@ const DocumentsPage = () => {
 
 	// Load documents status on component mount and when screen comes into focus
 	useEffect(() => {
+		const getDriverId = async () => {
+			try {
+				const driverId = await AsyncStorage.getItem('driverId');
+				console.log('Driver ID:', driverId);
+			} catch (error) {
+				console.log('Error fetching driverId:', error);
+			}
+		};
+		getDriverId();
 		loadDocumentsStatus();
 	}, []);
 
@@ -130,9 +139,9 @@ const DocumentsPage = () => {
 		onPress: () => void;
 		isCompleted?: boolean;
 	}) => (
-		<TouchableOpacity 
-			style={[styles.documentButton, isLoading && styles.disabledButton]} 
-			onPress={onPress} 
+		<TouchableOpacity
+			style={[styles.documentButton, isLoading && styles.disabledButton]}
+			onPress={onPress}
 			activeOpacity={isLoading ? 1 : 0.7}
 			disabled={isLoading}
 		>
@@ -144,7 +153,7 @@ const DocumentsPage = () => {
 					</View>
 				)}
 			</View>
-			<Ionicons name="chevron-forward" size={20} color={isLoading ? "#ccc" : "#666"} />
+			<Ionicons name="chevron-forward" size={20} color={isLoading ? '#ccc' : '#666'} />
 		</TouchableOpacity>
 	);
 
@@ -156,7 +165,7 @@ const DocumentsPage = () => {
 				imageUri,
 				[
 					// Resize to maximum width of 1000px while maintaining aspect ratio
-					{ resize: { width: 1000 } }
+					{ resize: { width: 1000 } },
 				],
 				{
 					compress: quality, // 0.5 = 50% quality, adjust as needed
@@ -173,7 +182,7 @@ const DocumentsPage = () => {
 	const handleSubmit = async () => {
 		console.log('Running submit function');
 		setIsLoading(true);
-		
+
 		try {
 			const keys = [
 				'aadhaarCard_frontPhoto',
@@ -187,10 +196,10 @@ const DocumentsPage = () => {
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
 			const formattedNum = '+91' + phoneNum;
 			console.log(formattedNum);
-			
+
 			const URIs = Object.fromEntries(result);
-			console.log('Document URIs:', URIs);
-			
+			//console.log('Document URIs:', URIs);
+
 			// Check if all required images are present
 			const requiredImages = [
 				'aadhaarCard_frontPhoto',
@@ -198,16 +207,16 @@ const DocumentsPage = () => {
 				'panCard_frontPhoto',
 				'panCard_backPhoto',
 				'drivingLicense_frontPhoto',
-				'drivingLicense_backPhoto'
+				'drivingLicense_backPhoto',
 			];
-			
+
 			for (const imageKey of requiredImages) {
 				if (!URIs[imageKey]) {
 					setErrorMsg(`Missing image: ${imageKey}`);
 					return;
 				}
 			}
-			
+
 			// Compress all images
 			console.log('Compressing images...');
 			const compressedURIs: { [key: string]: string } = {};
@@ -218,7 +227,7 @@ const DocumentsPage = () => {
 				}
 			}
 			console.log('Images compressed successfully');
-			
+
 			const URL = EXPO_PUBLIC_BACKEND_URL + '/api/auth/personal-documents';
 			const formData = new FormData();
 
@@ -270,29 +279,28 @@ const DocumentsPage = () => {
 			});
 
 			console.log('Response status:', response.status);
-			
+
 			if (!response.ok) {
 				if (response.status === 413) {
-					throw new Error('Images are too large. Please try taking smaller photos or contact support.');
+					throw new Error(
+						'Images are too large. Please try taking smaller photos or contact support.'
+					);
 				}
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
 			const data = await response.json();
-			console.log('API response:', data);
-			
+			//console.log('API response:', data);
+
 			// Clean up cached images (both original and compressed)
-			const imagesToDelete = [
-				...Object.values(URIs),
-				...Object.values(compressedURIs)
-			];
-			
-			imagesToDelete.forEach(imageUri => {
+			const imagesToDelete = [...Object.values(URIs), ...Object.values(compressedURIs)];
+
+			imagesToDelete.forEach((imageUri) => {
 				if (imageUri) {
 					deleteCachedImage(imageUri);
 				}
 			});
-			
+
 			// Update completion status
 			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
 			let completionStatus = {
@@ -302,19 +310,20 @@ const DocumentsPage = () => {
 				bankDetails: false,
 				emergencyDetails: false,
 			};
-			
+
 			if (savedStatus) {
 				completionStatus = JSON.parse(savedStatus);
 			}
-			
+
 			completionStatus.personalDocuments = true;
 			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
-			
+
 			navigation.goBack();
-			
 		} catch (err) {
 			console.log('Error in handleSubmit:', err);
-			setErrorMsg(err instanceof Error ? err.message : 'An error occurred while submitting documents.');
+			setErrorMsg(
+				err instanceof Error ? err.message : 'An error occurred while submitting documents.'
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -326,12 +335,12 @@ const DocumentsPage = () => {
 
 			{/* Header */}
 			<View style={styles.header}>
-				<TouchableOpacity 
-					onPress={handleBackPress} 
+				<TouchableOpacity
+					onPress={handleBackPress}
 					style={[styles.backButton, isLoading && styles.disabledButton]}
 					disabled={isLoading}
 				>
-					<Ionicons name="chevron-back" size={24} color={isLoading ? "#ccc" : "#000"} />
+					<Ionicons name="chevron-back" size={24} color={isLoading ? '#ccc' : '#000'} />
 				</TouchableOpacity>
 			</View>
 
@@ -370,7 +379,7 @@ const DocumentsPage = () => {
 					/>
 				</View>
 			</View>
-			
+
 			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
 
 			{/* Loading Overlay */}
@@ -390,7 +399,7 @@ const DocumentsPage = () => {
 						styles.submitButton,
 						{
 							backgroundColor: completedCount === 3 && !isLoading ? '#4CAF50' : '#bdbdbd',
-						}
+						},
 					]}
 					activeOpacity={completedCount === 3 && !isLoading ? 0.8 : 1}
 					disabled={completedCount !== 3 || isLoading}

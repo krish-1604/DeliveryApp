@@ -119,7 +119,7 @@ const PersonalInformationForm: React.FC = () => {
 		try {
 			// Get stored auth token and driver info
 			const token = await AsyncStorage.getItem('auth_token');
-			const driverId = await AsyncStorage.getItem('driver_id');
+			const driverId = await AsyncStorage.getItem('driverId');
 			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
 
 			if (token) {
@@ -361,11 +361,11 @@ const PersonalInformationForm: React.FC = () => {
 
 			// Call API with FormData
 			const response = await driverAPI.submitPersonalInformationWithFile(formDataToSend);
-			console.log(response);
+			//console.log(response);
 			if (response && response.success) {
 				// Store driver ID with consistent key
 				if (response.driver && response.driver.id) {
-					await AsyncStorage.setItem('driver_id', response.driver.id);
+					await AsyncStorage.setItem('driverId', response.driver.id);
 				}
 				return true;
 			} else {

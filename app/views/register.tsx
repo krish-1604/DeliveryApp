@@ -24,13 +24,12 @@ const RegisterScreen = () => {
 	};
 
 	useEffect(() => {
-		const checkDriverID = async () => {
-			const ID = await AsyncStorage.getItem('driverID');
-			if (ID) {
-				navigation.navigate('Details');
-			}
+		const fetchDriverID = async () => {
+			const driverID = await AsyncStorage.getItem('driverID');
+			const phoneNum = await AsyncStorage.getItem('phoneNumber');
+			console.log('Registration: ' + driverID + phoneNum);
 		};
-		checkDriverID();
+		fetchDriverID();
 	}, []);
 
 	const handlePress = async () => {

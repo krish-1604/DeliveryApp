@@ -49,6 +49,11 @@ export default function AadhaarCardDetails() {
 
 	// Load documents status on component mount
 	useEffect(() => {
+		const fetchDriverID = async () => {
+			const driverID = await AsyncStorage.getItem('driverId');
+			console.log('Documents Page: ' + driverID);
+		};
+		fetchDriverID();
 		loadDocumentsStatus();
 	}, []);
 
@@ -138,7 +143,8 @@ export default function AadhaarCardDetails() {
 	};
 
 	const handleContinue = async () => {
-		//const driverID = await AsyncStorage.getItem('driverId');
+		const driverID = await AsyncStorage.getItem('driverId');
+		console.log('Documents Page: ' + driverID);
 		if (frontPhoto && backPhoto) {
 			try {
 				// Update the documents status for the current document type
@@ -148,7 +154,7 @@ export default function AadhaarCardDetails() {
 					[documentKey]: true,
 				};
 				setDocumentsStatus(newStatus);
-				console.log(documentKey);
+				//console.log(documentKey);
 				await saveDocumentsStatus(newStatus);
 				const uri1 = await saveImage(frontPhoto, documentKey, 'front');
 				const uri2 = await saveImage(backPhoto, documentKey, 'back');

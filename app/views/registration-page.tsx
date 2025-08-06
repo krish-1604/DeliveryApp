@@ -41,7 +41,7 @@ export default function RegistrationPage() {
 				});
 
 				const data = await response.json();
-				console.log('Verification status:', data);
+				//console.log('Verification status:', data);
 
 				if (data?.profileStatus) {
 					const status = data.profileStatus;

@@ -33,22 +33,18 @@ export default function VehicleDetailsPage() {
 	const loadInitialData = async () => {
 		try {
 			setIsLoading(true);
-			
+
 			// Get phone number from AsyncStorage
 			const savedPhoneNumber = await AsyncStorage.getItem('phoneNumber');
 			if (savedPhoneNumber) {
 				setPhoneNumber(savedPhoneNumber);
 			}
 		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while loading data.'
-			);
+			setErrorMsg(error instanceof Error ? error.message : 'An error occurred while loading data.');
 		} finally {
 			setIsLoading(false);
 		}
 	};
-
-
 
 	const updateCompletionStatus = async () => {
 		try {
@@ -94,8 +90,10 @@ export default function VehicleDetailsPage() {
 
 		try {
 			// Ensure phone number has +91 prefix
-			const formattedPhoneNumber = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
-			
+			const formattedPhoneNumber = phoneNumber.startsWith('+91')
+				? phoneNumber
+				: `+91${phoneNumber}`;
+
 			// Prepare the data for API call
 			const apiPayload = {
 				phoneNumber: formattedPhoneNumber,
@@ -107,7 +105,7 @@ export default function VehicleDetailsPage() {
 				yearOfManufacture: parseInt(vehicleDetails.yearOfManufacture, 10),
 			};
 
-			console.log('API Payload:', JSON.stringify(apiPayload, null, 2));
+			//console.log('API Payload:', JSON.stringify(apiPayload, null, 2));
 			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
 			if (!baseUrl) {
 				throw new Error('Backend URL not configured');
@@ -121,7 +119,7 @@ export default function VehicleDetailsPage() {
 			});
 
 			const response = await responses.json();
-			console.log('API Response:', response);
+			//console.log('API Response:', response);
 			if (response.success) {
 				// Update local completion status
 				await updateCompletionStatus();
