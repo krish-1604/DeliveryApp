@@ -55,27 +55,30 @@ export default function RootLayout() {
 	useEffect(() => {
 		const determineInitialRoute = async () => {
 			try {
-				const [isVerified, authToken, driverId] = await AsyncStorage.multiGet([
+				const [isVerified, detailsSubmit, driverId] = await AsyncStorage.multiGet([
 					'isVerified',
-					'authToken',
+					'detailsSubmit',
 					'driverId',
 				]);
 
 				const hasVerification = isVerified[1] === 'true';
-				const hasAuth = authToken[1] !== null;
 				const hasDriverId = driverId[1] !== null;
 
-				if (hasVerification && hasAuth && hasDriverId) {
+				if (hasVerification && hasDriverId) {
 					setInitialRoute('MainTabs');
-				} else if (hasDriverId && hasAuth) {
-					setInitialRoute('PersonalInformation');
+				} else if (hasDriverId) {
+					if (detailsSubmit) {
+						setInitialRoute('RegistrationCompleted');
+					} else {
+						setInitialRoute('Details');
+					}
 				} else {
 					await AsyncStorage.multiRemove(['isVerified', 'authToken', 'driverId', 'userProfile']);
-					setInitialRoute('Splash');
+					setInitialRoute('Phone');
 				}
 			} catch {
 				await AsyncStorage.clear();
-				setInitialRoute('Splash');
+				setInitialRoute('Phone');
 			}
 		};
 

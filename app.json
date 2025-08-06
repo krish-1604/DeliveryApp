@@ -1,43 +1,43 @@
 {
-  "expo": {
-    "name": "Delivery App",
-    "slug": "delivery-app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./app/assets/images/main-splash.png",
-    "scheme": "deliveryapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./app/assets/images/main-splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./app/assets/images/main-splash.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./app/assets/images/main-splash.png"
-    },
-    "plugins": [
-      [
-        "expo-router",
-        {
-          "root": "./app"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
-  }
+	"expo": {
+		"name": "Delivery App",
+		"slug": "delivery-app",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./app/assets/images/main-splash.png",
+		"scheme": "deliveryapp",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+		"splash": {
+			"image": "./app/assets/images/main-splash.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#003032"
+		},
+		"ios": {
+			"supportsTablet": true
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./app/assets/images/main-splash.png",
+				"backgroundColor": "#003032"
+			},
+			"edgeToEdgeEnabled": true
+		},
+		"web": {
+			"bundler": "metro",
+			"output": "static",
+			"favicon": "./app/assets/images/main-splash.png"
+		},
+		"plugins": [
+			[
+				"expo-router",
+				{
+					"root": "./app"
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true
+		}
+	}
 }

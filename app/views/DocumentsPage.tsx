@@ -398,7 +398,7 @@ const DocumentsPage = () => {
 					style={[
 						styles.submitButton,
 						{
-							backgroundColor: completedCount === 3 && !isLoading ? '#4CAF50' : '#bdbdbd',
+							backgroundColor: completedCount === 3 && !isLoading ? '#003032' : '#bdbdbd',
 						},
 					]}
 					activeOpacity={completedCount === 3 && !isLoading ? 0.8 : 1}

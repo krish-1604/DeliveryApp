@@ -61,6 +61,10 @@ export default function FinalDetailsPage() {
 
 	// Load status when component mounts and when screen comes into focus
 	useEffect(() => {
+		const setAsync = async () => {
+			await AsyncStorage.setItem('detailsSubmit', 'false');
+		};
+		setAsync();
 		const initializeCompletionStatus = async () => {
 			let completionStatus = {
 				personalInformation: true,
@@ -110,9 +114,10 @@ export default function FinalDetailsPage() {
 
 	const handleSubmit = () => {
 		if (areAllDocumentsCompleted()) {
-			// Handle submit logic here
-			// console.log('All documents completed - submitting...');
-			// You can navigate to a success page or show a success message
+			const setAsync = async () => {
+				await AsyncStorage.setItem('detailsSubmit', 'true');
+			};
+			setAsync();
 			navigation.navigate('RegistrationCompleted');
 		} else {
 			setErrorMsg('Please complete all sections before submitting.');

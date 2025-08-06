@@ -106,7 +106,7 @@ export default function RegistrationPage() {
 					</View>
 
 					<TouchableOpacity
-						onPress={() => navigation.goBack()}
+						onPress={() => navigation.navigate('Details')}
 						className="absolute left-5 top-10 mt-2 ml-2 -translate-y-1/2 z-10"
 					>
 						<Ionicons name="chevron-back" size={24} color="black" />

@@ -16,7 +16,7 @@ const Splash = () => {
 	return (
 		<>
 			<StatusBar barStyle="light-content" translucent={true} backgroundColor="transparent" />
-			<View className="flex-1 justify-center items-center bg-primary">
+			<View className="flex-1 justify-center items-center bg-white">
 				<Image
 					source={require('../assets/images/main-splash.png')}
 					style={{ height: '70%' }}
