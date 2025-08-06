@@ -9,9 +9,11 @@ import { Text, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@/app/utils/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DriverAPI } from '@/app/utils/routes/driver'; // adjust import path if needed
+import { DriverAPI } from '@/app/utils/routes/driver';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const RegisterScreen = () => {
+	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<NavigationProp<'Phone'>>();
 	const [checked, setChecked] = useState(false);
 	const [number, setNumber] = useState('');
@@ -64,7 +66,10 @@ const RegisterScreen = () => {
 	};
 
 	return (
-		<View className="relative flex w-screen bg-white h-screen overflow-hidden">
+		<View
+			className="relative flex w-screen bg-white h-screen overflow-hidden"
+			style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+		>
 			<Background />
 			<View className="w-full h-2/6 px-5 flex gap-4 justify-end mt-10">
 				<Input

@@ -157,21 +157,54 @@ const DocumentsPage = () => {
 			const URIs = Object.fromEntries(result);
 			console.log('Document URIs:', URIs);
 			const URL = EXPO_PUBLIC_BACKEND_URL + '/api/auth/personal-documents';
+			const formData = new FormData();
+
+			formData.append('phoneNumber', formattedNum);
+
+			formData.append('aadhaarFront', {
+				uri: URIs.aadhar_frontPhoto,
+				name: 'aadhaar_front.jpg',
+				type: 'image/jpeg',
+			} as any);
+
+			formData.append('aadhaarBack', {
+				uri: URIs.aadhar_backPhoto,
+				name: 'aadhaar_back.jpg',
+				type: 'image/jpeg',
+			} as any);
+
+			formData.append('panFront', {
+				uri: URIs.pan_frontPhoto,
+				name: 'pan_front.jpg',
+				type: 'image/jpeg',
+			} as any);
+
+			formData.append('panBack', {
+				uri: URIs.pan_backPhoto,
+				name: 'pan_back.jpg',
+				type: 'image/jpeg',
+			} as any);
+
+			formData.append('licenseFront', {
+				uri: URIs.driving_frontPhoto,
+				name: 'license_front.jpg',
+				type: 'image/jpeg',
+			} as any);
+
+			formData.append('licenseBack', {
+				uri: URIs.driving_backPhoto,
+				name: 'license_back.jpg',
+				type: 'image/jpeg',
+			} as any);
+
 			const response = await fetch(URL, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'multipart/form-data',
 				},
-				body: JSON.stringify({
-					phoneNumber: formattedNum,
-					aadhaarFrontImage: URIs.aadhar_frontPhoto,
-					aadhaarBackImage: URIs.aadhar_backPhoto,
-					panFrontImage: URIs.pan_frontPhoto,
-					panBackImage: URIs.pan_backPhoto,
-					licenseFrontImage: URIs.driving_frontPhoto,
-					licenseBackImage: URIs.driving_backPhoto,
-				}),
+				body: formData,
 			});
+
 			const data = await response.json();
 			console.log('API response:', data);
 			if (URIs) {

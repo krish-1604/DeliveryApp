@@ -17,11 +17,11 @@ export default function RegistrationPage() {
 	const [errorMsg, setErrorMsg] = React.useState('');
 
 	const [verificationData, setVerificationData] = React.useState([
-		{ name: 'Personal Information', isVerified: true },
-		{ name: 'Personal Documents', isVerified: true },
-		{ name: 'Vehicle Details', isVerified: true },
-		{ name: 'Bank Account Details', isVerified: true },
-		{ name: 'Emergency Details', isVerified: true },
+		{ name: 'Personal Information', isVerified: false },
+		{ name: 'Personal Documents', isVerified: false },
+		{ name: 'Vehicle Details', isVerified: false },
+		{ name: 'Bank Account Details', isVerified: false },
+		{ name: 'Emergency Details', isVerified: false },
 	]);
 
 	React.useEffect(() => {
