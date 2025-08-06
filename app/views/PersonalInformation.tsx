@@ -68,6 +68,7 @@ const PersonalInformationForm: React.FC = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
+	let isDriverID = false;
 	const insets = useSafeAreaInsets();
 	const driverAPI = new DriverAPI();
 
@@ -121,7 +122,9 @@ const PersonalInformationForm: React.FC = () => {
 			const token = await AsyncStorage.getItem('auth_token');
 			const driverId = await AsyncStorage.getItem('driverId');
 			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
-
+			if (driverId) {
+				isDriverID = true;
+			}
 			if (token) {
 				driverAPI.setBearer(token);
 			}
@@ -479,7 +482,10 @@ const PersonalInformationForm: React.FC = () => {
 
 		return `${day} - ${month} - ${year}`;
 	};
-
+	const getDriverId = async (): Promise<string | null> => {
+		const driverId = await AsyncStorage.getItem('driverId');
+		return driverId;
+	};
 	return (
 		<View
 			style={{
@@ -489,12 +495,14 @@ const PersonalInformationForm: React.FC = () => {
 			}}
 		>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
-			<TouchableOpacity
-				style={{ paddingHorizontal: 20, paddingTop: 20 }}
-				onPress={() => navigation.goBack()}
-			>
-				<Ionicons name="chevron-back" size={24} color="#003032" />
-			</TouchableOpacity>
+			{isDriverID && (
+				<TouchableOpacity
+					style={{ paddingHorizontal: 20, paddingTop: 20 }}
+					onPress={() => navigation.goBack()}
+				>
+					<Ionicons name="chevron-back" size={24} color="#003032" />
+				</TouchableOpacity>
+			)}
 
 			<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 				<View style={styles.header}>

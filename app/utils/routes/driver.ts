@@ -184,7 +184,10 @@ export class DriverAPI {
 		}
 	}
 
-	async verifyOTP(phoneNumber: string, code: string): Promise<{
+	async verifyOTP(
+		phoneNumber: string,
+		code: string
+	): Promise<{
 		success: boolean;
 		message: string;
 		userExists: boolean;

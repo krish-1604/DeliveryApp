@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CheckedGotoListTile from '../components/gotoListTile';
@@ -18,7 +18,9 @@ interface CompletionStatus {
 const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 export default function FinalDetailsPage() {
+	const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
 	const [errorMsg, setErrorMsg] = useState('');
+	const [isLoading, setIsLoading] = useState(true);
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
 	const [completionStatus, setCompletionStatus] = useState<CompletionStatus>({
 		personalInformation: true,
@@ -30,52 +32,65 @@ export default function FinalDetailsPage() {
 
 	// Load completion status from AsyncStorage
 	const loadCompletionStatus = async () => {
+		const phoneNum = await AsyncStorage.getItem('phoneNumber');
+		const URL = BACKEND_URL + '/api/auth/complete-verification';
+
 		try {
-			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
-			if (savedStatus) {
-				const parsedStatus = JSON.parse(savedStatus);
-				setCompletionStatus({
-					...parsedStatus,
-					personalInformation: true, // Always keep this true
-				});
+			setIsLoading(true);
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					phoneNumber: `+91${phoneNum}`,
+				}),
+			});
+
+			const data = await response.json();
+			//console.log('Verification status:', data);
+
+			if (data?.profileStatus) {
+				const status = data.profileStatus;
+				const newCompletionStatus: CompletionStatus = {
+					personalInformation: status.personalInfo?.completed ?? false,
+					personalDocuments: status.personalDocuments?.completed ?? false,
+					vehicleDetails: status.vehicleDetails?.completed ?? false,
+					bankDetails: status.bankDetails?.completed ?? false,
+					emergencyDetails: status.emergencyDetails?.completed ?? false,
+				};
+				setCompletionStatus(newCompletionStatus);
 			}
 		} catch (error) {
-			// console.error('Error loading completion status:', error);
-			setErrorMsg(error instanceof Error ? error.message : String(error));
+			console.error('Error fetching verification status:', error);
+			setErrorMsg('Failed to load verification status. Please try again later.');
+		} finally {
+			setIsLoading(false);
 		}
+		// try {
+		// 	const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
+		// 	if (savedStatus) {
+		// 		const parsedStatus = JSON.parse(savedStatus);
+		// 		setCompletionStatus({
+		// 			...parsedStatus,
+		// 			personalInformation: true, // Always keep this true
+		// 		});
+		// 	}
+		// } catch (error) {
+		// 	// console.error('Error loading completion status:', error);
+		// 	setErrorMsg(error instanceof Error ? error.message : String(error));
+		// }
 	};
 
-	// Save completion status to AsyncStorage
-	// const saveCompletionStatus = async (status: CompletionStatus) => {
-	// 	try {
-	// 		await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(status));
-	// 	} catch (error) {
-	// 		// console.error('Error saving completion status:', error);
-	// 	}
-	// };
-
-	// Check if all documents are completed
 	const areAllDocumentsCompleted = () => {
 		return Object.values(completionStatus).every((status) => status);
 	};
 
-	// Load status when component mounts and when screen comes into focus
 	useEffect(() => {
 		const setAsync = async () => {
 			await AsyncStorage.setItem('detailsSubmit', 'false');
 		};
 		setAsync();
-		const initializeCompletionStatus = async () => {
-			let completionStatus = {
-				personalInformation: true,
-				personalDocuments: false,
-				vehicleDetails: false,
-				bankDetails: false,
-				emergencyDetails: false,
-			};
-			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
-		};
-		//initializeCompletionStatus();
 		loadCompletionStatus();
 	}, []);
 
@@ -84,6 +99,16 @@ export default function FinalDetailsPage() {
 			loadCompletionStatus();
 		}, [])
 	);
+
+	// Show loading screen while fetching data
+	if (isLoading) {
+		return (
+			<View className="h-full flex-col justify-center items-center bg-white">
+				<ActivityIndicator size="large" color="#003032" />
+				<Text className="text-gray-600 mt-4 text-lg">Loading verification status...</Text>
+			</View>
+		);
+	}
 
 	// Update completion status and save to storage
 	// const updateCompletionStatus = (key: keyof CompletionStatus, value: boolean) => {
