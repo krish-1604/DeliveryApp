@@ -121,11 +121,11 @@ const PersonalInformationForm: React.FC = () => {
 			// Get stored auth token and driver info
 			const token = await AsyncStorage.getItem('auth_token');
 			const driverId = await AsyncStorage.getItem('driverId');
-			console.log(driverId);
+			//console.log(driverId);
 			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
 			if (driverId != null) {
 				setIsDriverID(true);
-				console.log('DriverId set to true' + isDriverID);
+				//console.log('DriverId set to true' + isDriverID);
 			}
 			if (token) {
 				driverAPI.setBearer(token);

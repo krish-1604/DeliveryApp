@@ -54,7 +54,7 @@ export default function RootLayout() {
 
 	useEffect(() => {
 		const determineInitialRoute = async () => {
-			await AsyncStorage.removeItem('driverId');
+			//await AsyncStorage.removeItem('driverId');
 			try {
 				const [isVerified, detailsSubmit, driverId] = await AsyncStorage.multiGet([
 					'isVerified',
