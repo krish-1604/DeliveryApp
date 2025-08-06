@@ -54,6 +54,7 @@ export default function RootLayout() {
 
 	useEffect(() => {
 		const determineInitialRoute = async () => {
+			await AsyncStorage.removeItem('driverId');
 			try {
 				const [isVerified, detailsSubmit, driverId] = await AsyncStorage.multiGet([
 					'isVerified',
@@ -81,7 +82,7 @@ export default function RootLayout() {
 				setInitialRoute('Phone');
 			}
 		};
-
+		//setInitialRoute('PersonalInformation');
 		determineInitialRoute();
 	}, []);
 

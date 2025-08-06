@@ -68,7 +68,7 @@ const PersonalInformationForm: React.FC = () => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
-	let isDriverID = false;
+	const [isDriverID, setIsDriverID] = useState(false);
 	const insets = useSafeAreaInsets();
 	const driverAPI = new DriverAPI();
 
@@ -121,9 +121,11 @@ const PersonalInformationForm: React.FC = () => {
 			// Get stored auth token and driver info
 			const token = await AsyncStorage.getItem('auth_token');
 			const driverId = await AsyncStorage.getItem('driverId');
+			console.log(driverId);
 			const phoneNumber = await AsyncStorage.getItem('phoneNumber');
-			if (driverId) {
-				isDriverID = true;
+			if (driverId != null) {
+				setIsDriverID(true);
+				console.log('DriverId set to true' + isDriverID);
 			}
 			if (token) {
 				driverAPI.setBearer(token);
