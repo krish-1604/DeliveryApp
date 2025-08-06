@@ -21,6 +21,7 @@ import VerifyScreen from './views/verify';
 import Map from './views/MapGoBrrrrrrrrrrr';
 import PersonalInformationForm from './views/PersonalInformation';
 import DocumentsPage from './views/DocumentsPage';
+import Splash from './views/splash';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -70,11 +71,11 @@ export default function RootLayout() {
 					setInitialRoute('PersonalInformation');
 				} else {
 					await AsyncStorage.multiRemove(['isVerified', 'authToken', 'driverId', 'userProfile']);
-					setInitialRoute('Phone');
+					setInitialRoute('Splash');
 				}
 			} catch {
 				await AsyncStorage.clear();
-				setInitialRoute('Phone');
+				setInitialRoute('Splash');
 			}
 		};
 
@@ -105,6 +106,7 @@ export default function RootLayout() {
 				initialRouteName={initialRoute}
 				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
 			>
+				<Stack.Screen name="Splash" component={Splash} />
 				<Stack.Screen name="Phone" component={RegisterScreen} />
 				<Stack.Screen name="Verify" component={VerifyScreen} />
 				<Stack.Screen name="PersonalInformation" component={PersonalInformationForm} />
