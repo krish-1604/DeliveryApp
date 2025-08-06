@@ -7,13 +7,16 @@ import {
 	TouchableOpacity,
 	StatusBar,
 	Platform,
+	ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NavigationProp } from '@/app/utils/types';
 import ErrorToast from '../components/error';
 import { deleteCachedImage } from '@/app/utils/imageStorage';
+
 const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const DOCUMENTS_STATUS_KEY = 'documents_status';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
@@ -32,6 +35,7 @@ const DocumentsPage = () => {
 		drivingLicense: false,
 	});
 	const [errorMsg, setErrorMsg] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
 
 	// Load documents status on component mount and when screen comes into focus
 	useEffect(() => {
@@ -95,10 +99,12 @@ const DocumentsPage = () => {
 	}, [documentsStatus]);
 
 	const handleBackPress = () => {
+		if (isLoading) return; // Prevent navigation while loading
 		navigation.goBack();
 	};
 
 	const handleDocumentPress = (documentType: string) => {
+		if (isLoading) return; // Prevent navigation while loading
 		navigation.navigate('Aadhaar', { text: documentType });
 	};
 
@@ -124,23 +130,50 @@ const DocumentsPage = () => {
 		onPress: () => void;
 		isCompleted?: boolean;
 	}) => (
-		<TouchableOpacity style={styles.documentButton} onPress={onPress} activeOpacity={0.7}>
+		<TouchableOpacity 
+			style={[styles.documentButton, isLoading && styles.disabledButton]} 
+			onPress={onPress} 
+			activeOpacity={isLoading ? 1 : 0.7}
+			disabled={isLoading}
+		>
 			<View style={styles.documentButtonContent}>
-				<Text style={styles.documentButtonText}>{title}</Text>
+				<Text style={[styles.documentButtonText, isLoading && styles.disabledText]}>{title}</Text>
 				{isCompleted && (
 					<View style={styles.completedBadge}>
 						<Ionicons name="checkmark" size={16} color="#fff" />
 					</View>
 				)}
 			</View>
-			<Ionicons name="chevron-forward" size={20} color="#666" />
+			<Ionicons name="chevron-forward" size={20} color={isLoading ? "#ccc" : "#666"} />
 		</TouchableOpacity>
 	);
 
 	const completedCount = Object.values(documentsStatus).filter((status) => status).length;
 
+	const compressImage = async (imageUri: string, quality = 0.5) => {
+		try {
+			const manipulatedImage = await ImageManipulator.manipulateAsync(
+				imageUri,
+				[
+					// Resize to maximum width of 1000px while maintaining aspect ratio
+					{ resize: { width: 1000 } }
+				],
+				{
+					compress: quality, // 0.5 = 50% quality, adjust as needed
+					format: ImageManipulator.SaveFormat.JPEG,
+				}
+			);
+			return manipulatedImage.uri;
+		} catch (error) {
+			console.log('Error compressing image:', error);
+			return imageUri; // Return original if compression fails
+		}
+	};
+
 	const handleSubmit = async () => {
 		console.log('Running submit function');
+		setIsLoading(true);
+		
 		try {
 			const keys = [
 				'aadhaarCard_frontPhoto',
@@ -154,67 +187,113 @@ const DocumentsPage = () => {
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
 			const formattedNum = '+91' + phoneNum;
 			console.log(formattedNum);
+			
 			const URIs = Object.fromEntries(result);
 			console.log('Document URIs:', URIs);
+			
+			// Check if all required images are present
+			const requiredImages = [
+				'aadhaarCard_frontPhoto',
+				'aadhaarCard_backPhoto',
+				'panCard_frontPhoto',
+				'panCard_backPhoto',
+				'drivingLicense_frontPhoto',
+				'drivingLicense_backPhoto'
+			];
+			
+			for (const imageKey of requiredImages) {
+				if (!URIs[imageKey]) {
+					setErrorMsg(`Missing image: ${imageKey}`);
+					return;
+				}
+			}
+			
+			// Compress all images
+			console.log('Compressing images...');
+			const compressedURIs: { [key: string]: string } = {};
+			for (const [key, uri] of Object.entries(URIs)) {
+				if (uri) {
+					console.log(`Compressing ${key}...`);
+					compressedURIs[key] = await compressImage(uri, 0.7); // 70% quality
+				}
+			}
+			console.log('Images compressed successfully');
+			
 			const URL = EXPO_PUBLIC_BACKEND_URL + '/api/auth/personal-documents';
 			const formData = new FormData();
 
 			formData.append('phoneNumber', formattedNum);
 
+			// Use compressed images
 			formData.append('aadhaarFront', {
-				uri: URIs.aadhar_frontPhoto,
+				uri: compressedURIs.aadhaarCard_frontPhoto,
 				name: 'aadhaar_front.jpg',
 				type: 'image/jpeg',
 			} as any);
 
 			formData.append('aadhaarBack', {
-				uri: URIs.aadhar_backPhoto,
+				uri: compressedURIs.aadhaarCard_backPhoto,
 				name: 'aadhaar_back.jpg',
 				type: 'image/jpeg',
 			} as any);
 
 			formData.append('panFront', {
-				uri: URIs.pan_frontPhoto,
+				uri: compressedURIs.panCard_frontPhoto,
 				name: 'pan_front.jpg',
 				type: 'image/jpeg',
 			} as any);
 
 			formData.append('panBack', {
-				uri: URIs.pan_backPhoto,
+				uri: compressedURIs.panCard_backPhoto,
 				name: 'pan_back.jpg',
 				type: 'image/jpeg',
 			} as any);
 
 			formData.append('licenseFront', {
-				uri: URIs.driving_frontPhoto,
+				uri: compressedURIs.drivingLicense_frontPhoto,
 				name: 'license_front.jpg',
 				type: 'image/jpeg',
 			} as any);
 
 			formData.append('licenseBack', {
-				uri: URIs.driving_backPhoto,
+				uri: compressedURIs.drivingLicense_backPhoto,
 				name: 'license_back.jpg',
 				type: 'image/jpeg',
 			} as any);
 
+			console.log('Sending request to:', URL);
+			console.log('FormData prepared successfully');
+
 			const response = await fetch(URL, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'multipart/form-data',
-				},
 				body: formData,
 			});
 
+			console.log('Response status:', response.status);
+			
+			if (!response.ok) {
+				if (response.status === 413) {
+					throw new Error('Images are too large. Please try taking smaller photos or contact support.');
+				}
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
 			const data = await response.json();
 			console.log('API response:', data);
-			if (URIs) {
-				if (URIs.aadhar_frontPhoto) deleteCachedImage(URIs.aadhar_frontPhoto);
-				if (URIs.aadhar_backPhoto) deleteCachedImage(URIs.aadhar_backPhoto);
-				if (URIs.pan_frontPhoto) deleteCachedImage(URIs.pan_frontPhoto);
-				if (URIs.pan_backPhoto) deleteCachedImage(URIs.pan_backPhoto);
-				if (URIs.driving_frontPhoto) deleteCachedImage(URIs.driving_frontPhoto);
-				if (URIs.driver_backPhoto) deleteCachedImage(URIs.driver_backPhoto);
-			}
+			
+			// Clean up cached images (both original and compressed)
+			const imagesToDelete = [
+				...Object.values(URIs),
+				...Object.values(compressedURIs)
+			];
+			
+			imagesToDelete.forEach(imageUri => {
+				if (imageUri) {
+					deleteCachedImage(imageUri);
+				}
+			});
+			
+			// Update completion status
 			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
 			let completionStatus = {
 				personalInformation: false,
@@ -223,24 +302,36 @@ const DocumentsPage = () => {
 				bankDetails: false,
 				emergencyDetails: false,
 			};
+			
 			if (savedStatus) {
 				completionStatus = JSON.parse(savedStatus);
 			}
+			
 			completionStatus.personalDocuments = true;
 			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			
 			navigation.goBack();
+			
 		} catch (err) {
-			console.log(err);
+			console.log('Error in handleSubmit:', err);
+			setErrorMsg(err instanceof Error ? err.message : 'An error occurred while submitting documents.');
+		} finally {
+			setIsLoading(false);
 		}
 	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
 			{/* Header */}
 			<View style={styles.header}>
-				<TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-					<Ionicons name="chevron-back" size={24} color="#000" />
+				<TouchableOpacity 
+					onPress={handleBackPress} 
+					style={[styles.backButton, isLoading && styles.disabledButton]}
+					disabled={isLoading}
+				>
+					<Ionicons name="chevron-back" size={24} color={isLoading ? "#ccc" : "#000"} />
 				</TouchableOpacity>
 			</View>
 
@@ -279,28 +370,47 @@ const DocumentsPage = () => {
 					/>
 				</View>
 			</View>
+			
 			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
 
-			<View style={{ padding: 20, backgroundColor: '#fff' }}>
+			{/* Loading Overlay */}
+			{isLoading && (
+				<View style={styles.loadingOverlay}>
+					<View style={styles.loadingContainer}>
+						<ActivityIndicator size="large" color="#4CAF50" />
+						<Text style={styles.loadingText}>Submitting documents...</Text>
+						<Text style={styles.loadingSubtext}>Please wait while we upload your documents</Text>
+					</View>
+				</View>
+			)}
+
+			<View style={styles.submitButtonContainer}>
 				<TouchableOpacity
-					style={{
-						backgroundColor: completedCount === 3 ? '#4CAF50' : '#bdbdbd',
-						paddingVertical: 16,
-						borderRadius: 10,
-						alignItems: 'center',
-					}}
-					activeOpacity={completedCount === 3 ? 0.8 : 1}
-					disabled={completedCount !== 3}
+					style={[
+						styles.submitButton,
+						{
+							backgroundColor: completedCount === 3 && !isLoading ? '#4CAF50' : '#bdbdbd',
+						}
+					]}
+					activeOpacity={completedCount === 3 && !isLoading ? 0.8 : 1}
+					disabled={completedCount !== 3 || isLoading}
 					onPress={() => {
 						console.log('Running submit');
-						if (completedCount === 3) {
+						if (completedCount === 3 && !isLoading) {
 							handleSubmit();
-						} else {
+						} else if (completedCount !== 3) {
 							setErrorMsg('Please upload all documents before submitting.');
 						}
 					}}
 				>
-					<Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>Submit</Text>
+					{isLoading ? (
+						<View style={styles.submitButtonLoading}>
+							<ActivityIndicator size="small" color="#fff" />
+							<Text style={styles.submitButtonText}>Submitting...</Text>
+						</View>
+					) : (
+						<Text style={styles.submitButtonText}>Submit</Text>
+					)}
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>
@@ -399,6 +509,71 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginLeft: 8,
+	},
+	disabledButton: {
+		opacity: 0.6,
+	},
+	disabledText: {
+		color: '#999',
+	},
+	loadingOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		zIndex: 1000,
+	},
+	loadingContainer: {
+		backgroundColor: '#fff',
+		borderRadius: 16,
+		padding: 32,
+		alignItems: 'center',
+		shadowColor: '#000',
+		shadowOffset: {
+			width: 0,
+			height: 2,
+		},
+		shadowOpacity: 0.25,
+		shadowRadius: 8,
+		elevation: 5,
+		minWidth: 280,
+	},
+	loadingText: {
+		fontSize: 18,
+		fontWeight: '600',
+		color: '#000',
+		marginTop: 16,
+		textAlign: 'center',
+	},
+	loadingSubtext: {
+		fontSize: 14,
+		color: '#666',
+		marginTop: 8,
+		textAlign: 'center',
+		lineHeight: 20,
+	},
+	submitButtonContainer: {
+		padding: 20,
+		backgroundColor: '#fff',
+	},
+	submitButton: {
+		paddingVertical: 16,
+		borderRadius: 10,
+		alignItems: 'center',
+	},
+	submitButtonText: {
+		color: '#fff',
+		fontSize: 18,
+		fontWeight: '600',
+	},
+	submitButtonLoading: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
 	},
 });
 
