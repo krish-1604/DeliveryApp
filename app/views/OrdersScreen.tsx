@@ -93,13 +93,14 @@ export default function OrdersScreen() {
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 	const [orders, setOrders] = useState(allOrdersData);
-	const [availOrders, setAvailOrders] = useState<Job[]>([]); //TODO
+	const [availOrders, setAvailOrders] = useState<Job[]>([]); //TODO Array of available orders from API on load
 	const [loading, setLoading] = useState(false); // TODO
 	const [error, setError] = useState<string | null>(null);
-	const [currentOrder, setCurrentOrder] = useState<string | null>(null);
+	const [currentOrders, setCurrentOrder] = useState<string[]>([]);
 	const [token, setToken] = useState<string | null>(null);
 	const [isAvailable, setIsAvailable] = useState(false);
 	const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
+	const [deliveryOrder, setDeliveryOrder] = useState<string | null>(null);
 
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
@@ -159,8 +160,7 @@ export default function OrdersScreen() {
 
 				if (data.success) {
 					alert(data.message || 'Job accepted successfully!');
-					await AsyncStorage.setItem('current_order', orderId);
-					setCurrentOrder(orderId);
+					setCurrentOrder((prev) => [...prev, orderId]);
 					setSelectedTab('Accepted');
 				} else {
 					alert('Could not accept job. Try again.');
@@ -186,6 +186,7 @@ export default function OrdersScreen() {
 	async function handleDeliveryOTP(orderId: string) {
 		//TODO
 		setLoading(true);
+		setDeliveryOrder(orderId);
 		// setOtpModalVisible(true); // Open OTP modal
 		try {
 			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
@@ -221,7 +222,7 @@ export default function OrdersScreen() {
 
 	async function handleVerifyDeliveryOTP() {
 		// TODO
-		const URL = baseUrl + `/api/orders/driver/jobs/${currentOrder}/verify-delivery`;
+		const URL = baseUrl + `/api/orders/driver/jobs/${deliveryOrder}/verify-delivery`;
 		setLoading(true);
 		// if (otp == '123456') {
 		// 	console.log('Delivery completed successfully');
@@ -250,6 +251,7 @@ export default function OrdersScreen() {
 				console.log('Delivery completed successfully:', data.message);
 				setOtpModalVisible(false); // Hide modal
 				Alert.alert('Success', 'OTP verified successfully');
+				setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
 			} else {
 				console.error('OTP verification failed:', data.message);
 				Alert.alert('Error', 'Invalid OTP. Please try again.');
@@ -258,6 +260,7 @@ export default function OrdersScreen() {
 			console.error('Error verifying OTP:', error);
 			Alert.alert('Error', 'Something went wrong while verifying OTP.');
 		} finally {
+			setOtp('');
 			setLoading(false);
 		}
 	}
@@ -1125,6 +1128,7 @@ export default function OrdersScreen() {
 						<View style={{ flexDirection: 'row', gap: 12 }}>
 							<TouchableOpacity
 								onPress={() => {
+									setOtp('');
 									setOtpModalVisible(false);
 								}}
 								style={{
