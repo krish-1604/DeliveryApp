@@ -186,7 +186,7 @@ export default function OrdersScreen() {
 	async function handleDeliveryOTP(orderId: string) {
 		//TODO
 		setLoading(true);
-		setOtpModalVisible(true); // Open OTP modal
+		// setOtpModalVisible(true); // Open OTP modal
 		try {
 			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
 			console.log(URL);
@@ -199,17 +199,17 @@ export default function OrdersScreen() {
 			});
 
 			console.log(response);
-			// const data = await response.json();
-			// if (response.ok && data.success) {
-			// 	console.log('✅ OTP sent successfully:', data.message);
-			// 	setOtpModalVisible(true); // Open OTP modal
-			// } else {
-			// 	console.error('❌ Failed to send OTP:', data.message);
-			// 	Alert.alert(
-			// 		'OTP Failed',
-			// 		`Status: ${response.status} - ${data.message || 'Unknown error'}`
-			// 	);
-			// }
+			const data = await response.json();
+			if (response.ok && data.success) {
+				console.log('✅ OTP sent successfully:', data.message);
+				setOtpModalVisible(true); // Open OTP modal
+			} else {
+				console.error('❌ Failed to send OTP:', data.message);
+				Alert.alert(
+					'OTP Failed',
+					`Status: ${response.status} - ${data.message || 'Unknown error'}`
+				);
+			}
 		} catch (error: any) {
 			console.error('⚠️ Error sending OTP:', error);
 			Alert.alert('OTP Failed', `An unexpected error occurred.`);
