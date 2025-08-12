@@ -39,13 +39,12 @@ export default function RegistrationPage() {
 						phoneNumber: `+91${phoneNum}`,
 					}),
 				});
-
 				const data = await response.json();
 				//console.log('Verification status:', data);
 
-				if (data?.profileStatus) {
+				if (data?.success && data?.profileStatus) {
 					const status = data.profileStatus;
-
+					await AsyncStorage.setItem('auth_token', data.token);
 					const updatedStatus = [
 						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
 						{
@@ -65,7 +64,7 @@ export default function RegistrationPage() {
 			}
 		};
 
-		// getVerificationStatus();
+		getVerificationStatus();
 	}, []);
 
 	const handleButtonPress = async () => {

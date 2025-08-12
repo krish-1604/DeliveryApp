@@ -57,6 +57,7 @@ const VerifyScreen = () => {
 				await AsyncStorage.setItem('driverId', response.driver.id);
 				if (response.userExists && response.isCompletelyVerified) {
 					await AsyncStorage.multiSet([
+						['auth_token', response.token],
 						['isVerified', 'true'],
 						[
 							'userProfile',

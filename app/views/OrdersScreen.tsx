@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
 	View,
 	Text,
@@ -8,12 +8,24 @@ import {
 	StatusBar,
 	Dimensions,
 	Modal,
+	Alert,
+	TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
+const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
 
-// Dummy orders split by type
+interface Job {
+	id: string;
+	externalOrderId: string;
+	sourceAddress: string;
+	destinationAddress: string;
+	price: number;
+	createdAt: string; // can convert to Date object if needed
+}
+
 const allOrdersData = {
 	Accepted: [
 		{
@@ -73,16 +85,180 @@ const allOrdersData = {
 const statusOptions = ['Pickup Pending', 'Pickup Failed', 'Pickup Rescheduled', 'Delivered'];
 
 export default function OrdersScreen() {
+	const [otpModalVisible, setOtpModalVisible] = useState(false);
+	const [otp, setOtp] = useState('');
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 	const [selectedTab, setSelectedTab] = useState<'Available' | 'Accepted'>('Available');
 	const [selectedDate] = useState<string>('24/04/2025');
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 	const [orders, setOrders] = useState(allOrdersData);
+	const [availOrders, setAvailOrders] = useState<Job[]>([]); //TODO
+	const [loading, setLoading] = useState(false); // TODO
+	const [error, setError] = useState<string | null>(null);
+	const [currentOrder, setCurrentOrder] = useState<string | null>(null);
+	const [token, setToken] = useState<string | null>(null);
 
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
 	};
+
+	useEffect(() => {
+		const fetchPendingJobs = async () => {
+			//TODO
+			setLoading(true);
+			setError(null);
+			const token = await AsyncStorage.getItem('auth_token');
+			setToken(token);
+			const URL = baseUrl + '/api/orders/driver/jobs/pending';
+			try {
+				const response = await fetch(URL, {
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				});
+
+				if (!response.ok) {
+					throw new Error(`Error ${response.status}: ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				if (data.success) {
+					setAvailOrders(data.jobs);
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'Unknown error');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchPendingJobs();
+	}, []);
+
+	const [loadingPickup, setLoadingPickup] = useState(false);
+
+	const handleConfirmPickup = async (orderId: string) => {
+		//TODO
+		setLoadingPickup(true);
+		const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/accept`;
+		console.log(URL);
+		try {
+			const res = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			console.log(res);
+			if (res.status === 200) {
+				const data = await res.json();
+				console.log('Pickup confirmed:', data);
+
+				if (data.success) {
+					alert(data.message || 'Job accepted successfully!');
+					await AsyncStorage.setItem('current_order', orderId);
+					setCurrentOrder(orderId);
+					setSelectedTab('Accepted');
+				} else {
+					alert('Could not accept job. Try again.');
+				}
+			} else if (res.status === 403) {
+				alert('Please change your driver status to "AVAILABLE" to accept jobs.');
+			} else if (res.status === 400) {
+				alert('Invalid request. Please try again.');
+			} else if (res.status === 409) {
+				const data = await res.json();
+				alert(data.error || 'Job not available.');
+			} else {
+				alert(`Error ${res.status}: ${res.statusText}`);
+			}
+		} catch (error) {
+			console.error('Error confirming pickup:', error);
+			alert('An error occurred while accepting the job.');
+		} finally {
+			setLoadingPickup(false);
+		}
+	};
+
+	async function handleDeliveryOTP(orderId: string) {
+		//TODO
+		setLoading(true);
+		setOtpModalVisible(true); // Open OTP modal
+		try {
+			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
+			console.log(URL);
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json',
+				},
+			});
+
+			console.log(response);
+			// const data = await response.json();
+			// if (response.ok && data.success) {
+			// 	console.log('✅ OTP sent successfully:', data.message);
+			// 	setOtpModalVisible(true); // Open OTP modal
+			// } else {
+			// 	console.error('❌ Failed to send OTP:', data.message);
+			// 	Alert.alert(
+			// 		'OTP Failed',
+			// 		`Status: ${response.status} - ${data.message || 'Unknown error'}`
+			// 	);
+			// }
+		} catch (error: any) {
+			console.error('⚠️ Error sending OTP:', error);
+			Alert.alert('OTP Failed', `An unexpected error occurred.`);
+		} finally {
+			setLoading(false);
+		}
+		return <View style={{ flex: 1, padding: 20 }}>{/* OTP Modal */}</View>;
+	}
+
+	async function handleVerifyDeliveryOTP() {
+		// TODO
+		const URL = baseUrl + `/api/orders/driver/jobs/${currentOrder}/verify-delivery`;
+		setLoading(true);
+		// if (otp == '123456') {
+		// 	console.log('Delivery completed successfully');
+		// 	setOtpModalVisible(false); // Hide modal
+		// 	Alert.alert('Success', 'OTP verified successfully');
+		// } else {
+		// 	console.error('OTP verification failed');
+		// 	Alert.alert('Error', 'Invalid OTP. Please try again.');
+		// }
+		try {
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ otp }),
+			});
+			console.log(response);
+			console.log(token);
+			if (!response.ok) {
+				throw new Error(`HTTP error! Status: ${response.status}`);
+			}
+			const data = await response.json();
+			if (data.success) {
+				console.log('Delivery completed successfully:', data.message);
+				setOtpModalVisible(false); // Hide modal
+				Alert.alert('Success', 'OTP verified successfully');
+			} else {
+				console.error('OTP verification failed:', data.message);
+				Alert.alert('Error', 'Invalid OTP. Please try again.');
+			}
+		} catch (error) {
+			console.error('Error verifying OTP:', error);
+			Alert.alert('Error', 'Something went wrong while verifying OTP.');
+		} finally {
+			setLoading(false);
+		}
+	}
 
 	const openStatusModal = (orderId: string) => {
 		setSelectedOrderId(orderId);
@@ -558,24 +734,30 @@ export default function OrdersScreen() {
 												}}
 											>
 												<TouchableOpacity
+													onPress={
+														selectedTab === 'Available'
+															? () => handleConfirmPickup(order.id)
+															: () => handleDeliveryOTP(order.id)
+													}
+													disabled={loadingPickup}
 													style={{
-														flex: 1,
-														backgroundColor: '#059669',
+														flex: 1, // make it take equal space
+														backgroundColor: loadingPickup ? '#ccc' : '#007bff',
 														paddingVertical: 12,
 														borderRadius: 12,
+														alignItems: 'center',
+														justifyContent: 'center',
 													}}
 												>
-													<Text
-														style={{
-															color: '#ffffff',
-															fontWeight: 'bold',
-															textAlign: 'center',
-															fontSize: 14,
-														}}
-													>
-														Confirm Pickup
+													<Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>
+														{selectedTab === 'Accepted'
+															? 'Deliver Item'
+															: loadingPickup
+																? 'Confirming...'
+																: 'Confirm Pickup'}
 													</Text>
 												</TouchableOpacity>
+
 												<TouchableOpacity
 													onPress={() => openStatusModal(order.id)}
 													style={{
@@ -585,6 +767,8 @@ export default function OrdersScreen() {
 														borderColor: '#e2e8f0',
 														paddingVertical: 12,
 														borderRadius: 12,
+														alignItems: 'center',
+														justifyContent: 'center',
 													}}
 												>
 													<Text
@@ -607,7 +791,185 @@ export default function OrdersScreen() {
 					))
 				)}
 			</ScrollView>
+			<Modal visible={otpModalVisible} transparent animationType="fade">
+				<View
+					style={{
+						flex: 1,
+						justifyContent: 'center',
+						alignItems: 'center',
+						backgroundColor: 'rgba(0, 0, 0, 0.5)',
+						paddingHorizontal: 20,
+					}}
+				>
+					<View
+						style={{
+							width: '100%',
+							maxWidth: 340,
+							backgroundColor: '#ffffff',
+							borderRadius: 20,
+							padding: 24,
+							shadowColor: '#000',
+							shadowOffset: {
+								width: 0,
+								height: 4,
+							},
+							shadowOpacity: 0.25,
+							shadowRadius: 16,
+							elevation: 8,
+						}}
+					>
+						{/* Header with Icon */}
+						<View style={{ alignItems: 'center', marginBottom: 24 }}>
+							<View
+								style={{
+									width: 60,
+									height: 60,
+									borderRadius: 30,
+									backgroundColor: '#f0f9ff',
+									justifyContent: 'center',
+									alignItems: 'center',
+									marginBottom: 16,
+								}}
+							>
+								<Ionicons name="shield-checkmark" size={28} color="#0ea5e9" />
+							</View>
+							<Text
+								style={{
+									fontSize: 22,
+									fontWeight: '700',
+									color: '#1e293b',
+									textAlign: 'center',
+									marginBottom: 8,
+								}}
+							>
+								Delivery Verification
+							</Text>
+							<Text
+								style={{
+									fontSize: 14,
+									color: '#64748b',
+									textAlign: 'center',
+									lineHeight: 20,
+								}}
+							>
+								Please enter the OTP provided by the customer to confirm delivery
+							</Text>
+						</View>
 
+						{/* OTP Input */}
+						<View style={{ marginBottom: 24 }}>
+							<Text
+								style={{
+									fontSize: 14,
+									fontWeight: '600',
+									color: '#374151',
+									marginBottom: 8,
+								}}
+							>
+								Delivery OTP
+							</Text>
+							<TextInput
+								value={otp}
+								onChangeText={setOtp}
+								placeholder="Enter 6-digit OTP"
+								keyboardType="numeric"
+								maxLength={6}
+								style={{
+									borderWidth: 1.5,
+									borderColor: otp.length > 0 ? '#0ea5e9' : '#e2e8f0',
+									borderRadius: 12,
+									paddingVertical: 16,
+									paddingHorizontal: 16,
+									fontSize: 16,
+									fontWeight: '500',
+									backgroundColor: '#fafafa',
+									textAlign: 'center',
+									letterSpacing: 2,
+								}}
+								placeholderTextColor="#9ca3af"
+							/>
+						</View>
+
+						{/* Action Buttons */}
+						<View style={{ flexDirection: 'row', gap: 12 }}>
+							<TouchableOpacity
+								onPress={() => {
+									setOtpModalVisible(false);
+								}}
+								style={{
+									flex: 1,
+									paddingVertical: 16,
+									borderRadius: 12,
+									backgroundColor: '#f8fafc',
+									borderWidth: 1,
+									borderColor: '#e2e8f0',
+									alignItems: 'center',
+									justifyContent: 'center',
+								}}
+							>
+								<Text
+									style={{
+										fontSize: 16,
+										fontWeight: '600',
+										color: '#64748b',
+									}}
+								>
+									Cancel
+								</Text>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								onPress={() => {
+									if (otp.length === 6) {
+										handleVerifyDeliveryOTP();
+									} else {
+										Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP');
+									}
+								}}
+								style={{
+									flex: 1,
+									paddingVertical: 16,
+									borderRadius: 12,
+									backgroundColor: otp.length === 6 ? '#10b981' : '#9ca3af',
+									alignItems: 'center',
+									justifyContent: 'center',
+									shadowColor: '#10b981',
+									shadowOffset: {
+										width: 0,
+										height: 2,
+									},
+									shadowOpacity: otp.length === 6 ? 0.2 : 0,
+									shadowRadius: 4,
+									elevation: otp.length === 6 ? 2 : 0,
+								}}
+							>
+								<Text
+									style={{
+										fontSize: 16,
+										fontWeight: '700',
+										color: '#ffffff',
+									}}
+								>
+									Verify OTP
+								</Text>
+							</TouchableOpacity>
+						</View>
+
+						{/* Additional Help Text */}
+						<Text
+							style={{
+								fontSize: 12,
+								color: '#9ca3af',
+								textAlign: 'center',
+								marginTop: 16,
+								lineHeight: 16,
+							}}
+						>
+							Having trouble? Ask the customer to check their phone for the OTP
+						</Text>
+					</View>
+				</View>
+			</Modal>
 			{/* Status Selection Modal */}
 			<Modal
 				animationType="slide"
