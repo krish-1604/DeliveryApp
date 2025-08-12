@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import {
+	View,
+	Text,
+	TouchableOpacity,
+	ScrollView,
+	SafeAreaView,
+	StatusBar,
+	Dimensions,
+	Modal,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 // Dummy orders split by type
 const allOrdersData = {
-	Meal: [
+	Accepted: [
 		{
 			id: '#M1001',
 			status: 'Delivered',
@@ -24,8 +34,17 @@ const allOrdersData = {
 			amount: 240,
 			paid: false,
 		},
+		{
+			id: '#M1003',
+			status: 'Pickup Failed',
+			center: 'VIT Hostel Mess B',
+			items: [{ name: 'Continental Breakfast', qty: 1, weight: '1 plate', from: 'Mess B' }],
+			deliveryTo: 'Room 205, Block 2',
+			amount: 180,
+			paid: true,
+		},
 	],
-	Store: [
+	Available: [
 		{
 			id: '#S2001',
 			status: 'Pickup Pending',
@@ -50,17 +69,47 @@ const allOrdersData = {
 	],
 };
 
+// Available status options
+const statusOptions = ['Pickup Pending', 'Pickup Failed', 'Pickup Rescheduled', 'Delivered'];
+
 export default function OrdersScreen() {
-	const insets = useSafeAreaInsets();
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-	const [selectedTab, setSelectedTab] = useState<'Meal' | 'Store'>('Store');
+	const [selectedTab, setSelectedTab] = useState<'Available' | 'Accepted'>('Available');
 	const [selectedDate] = useState<string>('24/04/2025');
+	const [showStatusModal, setShowStatusModal] = useState(false);
+	const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+	const [orders, setOrders] = useState(allOrdersData);
 
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
 	};
 
-	const ordersData = allOrdersData[selectedTab];
+	const openStatusModal = (orderId: string) => {
+		setSelectedOrderId(orderId);
+		setShowStatusModal(true);
+	};
+
+	const updateOrderStatus = (newStatus: string) => {
+		if (!selectedOrderId) return;
+
+		setOrders((prevOrders) => {
+			const updatedOrders = { ...prevOrders };
+
+			// Update in both tabs
+			Object.keys(updatedOrders).forEach((tab) => {
+				updatedOrders[tab as keyof typeof updatedOrders] = updatedOrders[
+					tab as keyof typeof updatedOrders
+				].map((order) => (order.id === selectedOrderId ? { ...order, status: newStatus } : order));
+			});
+
+			return updatedOrders;
+		});
+
+		setShowStatusModal(false);
+		setSelectedOrderId(null);
+	};
+
+	const ordersData = orders[selectedTab];
 
 	const groupedOrders = ordersData.reduce(
 		(acc, order) => {
@@ -72,103 +121,482 @@ export default function OrdersScreen() {
 	);
 
 	return (
-		<SafeAreaView style={{ paddingTop: insets.top }} className="flex-1 px-4">
-			<View className="flex-row items-center justify-center mb-4">
-				<Ionicons name="bag-outline" size={24} className="mr-2" />
-				<Text className="text-2xl font-semibold">Orders</Text>
-			</View>
+		<SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+			<StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 
-			<View className="flex-row justify-between items-center mb-4">
-				<View className="flex-row bg-gray-200 rounded-full p-1">
-					{['Meal', 'Store'].map((type) => (
-						<TouchableOpacity
-							key={type}
-							onPress={() => setSelectedTab(type as 'Meal' | 'Store')}
-							className={`px-4 py-2 rounded-full ${selectedTab === type ? 'bg-white' : ''}`}
-						>
-							<Text
-								className={`text-sm font-semibold ${selectedTab === type ? 'text-black' : 'text-gray-500'}`}
-							>
-								{type}
-							</Text>
-						</TouchableOpacity>
-					))}
+			{/* Clean Header */}
+			<View
+				style={{
+					backgroundColor: '#f8fafc',
+					paddingHorizontal: 20,
+					paddingVertical: 16,
+					borderBottomWidth: 1,
+					borderBottomColor: '#f1f5f9',
+				}}
+			>
+				<View
+					style={{
+						flexDirection: 'row',
+						alignItems: 'center',
+						justifyContent: 'center',
+						marginBottom: 16,
+					}}
+				>
+					<View
+						style={{
+							backgroundColor: '#dbeafe',
+							padding: 8,
+							borderRadius: 12,
+							marginRight: 8,
+						}}
+					>
+						<Ionicons name="bag-outline" size={24} color="#2563eb" />
+					</View>
+					<Text
+						style={{
+							fontSize: 24,
+							fontWeight: 'bold',
+							color: '#1e293b',
+						}}
+					>
+						Orders
+					</Text>
 				</View>
 
-				<TouchableOpacity className="flex-row items-center border border-gray-300 px-3 py-1 rounded-full">
-					<Text className="text-sm mr-2">{selectedDate}</Text>
-					<Ionicons name="chevron-down" size={16} color="#444" />
-				</TouchableOpacity>
+				{/* Tab selector and date picker */}
+				<View
+					style={{
+						flexDirection: 'row',
+						justifyContent: 'space-between',
+						alignItems: 'center',
+					}}
+				>
+					<View
+						style={{
+							flexDirection: 'row',
+							backgroundColor: '#f8fafc',
+							borderRadius: 12,
+							padding: 3,
+						}}
+					>
+						{['Accepted', 'Available'].map((type) => (
+							<TouchableOpacity
+								key={type}
+								onPress={() => setSelectedTab(type as 'Accepted' | 'Available')}
+								style={{
+									paddingHorizontal: 16,
+									paddingVertical: 8,
+									borderRadius: 9,
+									backgroundColor: selectedTab === type ? '#ffffff' : 'transparent',
+									shadowColor: selectedTab === type ? '#000' : 'transparent',
+									shadowOffset: { width: 0, height: 1 },
+									shadowOpacity: selectedTab === type ? 0.1 : 0,
+									shadowRadius: 2,
+									elevation: selectedTab === type ? 1 : 0,
+								}}
+							>
+								<Text
+									style={{
+										fontSize: 14,
+										fontWeight: '600',
+										color: selectedTab === type ? '#2563eb' : '#64748b',
+									}}
+								>
+									{type}
+								</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+
+					<TouchableOpacity
+						style={{
+							flexDirection: 'row',
+							alignItems: 'center',
+							backgroundColor: '#ffffff',
+							borderWidth: 1,
+							borderColor: '#e2e8f0',
+							paddingHorizontal: 12,
+							paddingVertical: 8,
+							borderRadius: 10,
+						}}
+					>
+						<Text
+							style={{
+								fontSize: 14,
+								fontWeight: '500',
+								marginRight: 6,
+								color: '#374151',
+							}}
+						>
+							{selectedDate}
+						</Text>
+						<Ionicons name="chevron-down" size={16} color="#9ca3af" />
+					</TouchableOpacity>
+				</View>
 			</View>
 
-			<ScrollView className="mb-20">
+			{/* Content area */}
+			<ScrollView
+				style={{ flex: 1, backgroundColor: '#f8fafc' }}
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, paddingBottom: 80 }}
+			>
 				{Object.keys(groupedOrders).length === 0 ? (
-					<View className="flex-1 items-center justify-center mt-20">
-						<Ionicons name="sad-outline" size={60} color="#ccc" />
-						<Text className="text-gray-500 text-lg mt-4">No orders found</Text>
+					<View
+						style={{
+							flex: 1,
+							alignItems: 'center',
+							justifyContent: 'center',
+							marginTop: 100,
+						}}
+					>
+						<View
+							style={{
+								backgroundColor: '#f1f5f9',
+								padding: 32,
+								borderRadius: 32,
+								marginBottom: 24,
+							}}
+						>
+							<Ionicons name="bag-outline" size={80} color="#9ca3af" />
+						</View>
+						<Text
+							style={{
+								color: '#64748b',
+								fontSize: 24,
+								fontWeight: '600',
+								marginBottom: 8,
+							}}
+						>
+							No {selectedTab} Orders
+						</Text>
+						<Text
+							style={{
+								color: '#94a3b8',
+								fontSize: 16,
+								textAlign: 'center',
+								lineHeight: 24,
+							}}
+						>
+							{selectedTab} orders will appear here when available
+						</Text>
 					</View>
 				) : (
 					Object.entries(groupedOrders).map(([centerName, orders]) => (
-						<View key={centerName} className="mb-6">
-							{/* Header with center name and icons */}
-							<View className="flex-row justify-between items-center mb-2 px-1">
-								<Text className="text-base font-bold">{centerName}</Text>
-								<View className="flex-row space-x-2">
-									<TouchableOpacity className="bg-yellow-100 p-2 rounded-full">
-										<Ionicons name="call" size={16} color="#c79300" />
+						<View key={centerName} style={{ marginBottom: 32 }}>
+							{/* Center Header */}
+							<View
+								style={{
+									flexDirection: 'row',
+									justifyContent: 'space-between',
+									alignItems: 'center',
+									marginBottom: 16,
+									paddingHorizontal: 4,
+								}}
+							>
+								<View style={{ flex: 1 }}>
+									<Text
+										style={{
+											fontSize: 18,
+											fontWeight: 'bold',
+											color: '#1e293b',
+											marginBottom: 4,
+										}}
+									>
+										{centerName}
+									</Text>
+									<Text
+										style={{
+											fontSize: 14,
+											color: '#64748b',
+										}}
+									>
+										{orders.length} order{orders.length !== 1 ? 's' : ''}
+									</Text>
+								</View>
+								<View style={{ flexDirection: 'row', gap: 12 }}>
+									<TouchableOpacity
+										style={{
+											backgroundColor: '#fef3c7',
+											padding: 8,
+											borderRadius: 10,
+											width: 36,
+											height: 36,
+											alignItems: 'center',
+											justifyContent: 'center',
+											shadowColor: '#000',
+											shadowOffset: { width: 0, height: 2 },
+											shadowOpacity: 0.1,
+											shadowRadius: 4,
+										}}
+									>
+										<Ionicons name="call" size={16} color="#d97706" />
 									</TouchableOpacity>
-									<TouchableOpacity className="bg-green-100 p-2 rounded-full">
-										<Ionicons name="navigate" size={16} color="#007f5f" />
+									<TouchableOpacity
+										style={{
+											backgroundColor: '#dcfce7',
+											padding: 8,
+											borderRadius: 10,
+											width: 36,
+											height: 36,
+											alignItems: 'center',
+											justifyContent: 'center',
+											shadowColor: '#000',
+											shadowOffset: { width: 0, height: 2 },
+											shadowOpacity: 0.1,
+											shadowRadius: 4,
+											elevation: 2,
+										}}
+									>
+										<Ionicons name="navigate" size={16} color="#059669" />
 									</TouchableOpacity>
 								</View>
 							</View>
 
-							{/* Orders under this center */}
-							{orders.map((order) => (
+							{/* Orders */}
+							{orders.map((order, index) => (
 								<View
 									key={order.id}
-									className="mb-2 border border-gray-200 rounded-xl p-4 bg-white"
+									style={{
+										marginBottom: 12,
+										backgroundColor: '#ffffff',
+										borderRadius: 16,
+										padding: 16,
+										shadowColor: '#000',
+										shadowOffset: { width: 0, height: 2 },
+										shadowOpacity: 0.05,
+										shadowRadius: 8,
+										elevation: 2,
+										borderWidth: 1,
+										borderColor: '#f1f5f9',
+									}}
 								>
 									<TouchableOpacity
 										onPress={() => toggleExpand(order.id)}
-										className="flex-row justify-between items-center"
+										style={{
+											flexDirection: 'row',
+											justifyContent: 'space-between',
+											alignItems: 'flex-start',
+										}}
 									>
-										<View>
-											<Text className="text-sm text-gray-600">Order No. {order.id}</Text>
-											<Text className="text-sm text-gray-700 font-medium">
-												{order.items[0]?.name} | {order.items[0]?.weight}
+										<View style={{ flex: 1, marginRight: 12 }}>
+											<Text
+												style={{
+													fontSize: 12,
+													color: '#64748b',
+													marginBottom: 3,
+												}}
+											>
+												Order No. {order.id}
+											</Text>
+											<Text
+												style={{
+													fontSize: 16,
+													color: '#1e293b',
+													fontWeight: '600',
+													lineHeight: 20,
+													marginBottom: 3,
+												}}
+											>
+												{order.items[0]?.name}
+												{order.items.length > 1 && ` +${order.items.length - 1} more`}
+											</Text>
+											<Text
+												style={{
+													fontSize: 14,
+													color: '#475569',
+												}}
+											>
+												{order.items[0]?.weight}
 											</Text>
 										</View>
 
-										<Text
-											className={`px-3 py-1 rounded-full text-xs ${getStatusColor(order.status)}`}
-										>
-											{order.status}
-										</Text>
+										<View style={{ alignItems: 'flex-end' }}>
+											<View
+												style={{
+													paddingHorizontal: 12,
+													paddingVertical: 6,
+													borderRadius: 10,
+													backgroundColor: getStatusStyle(order.status),
+													marginBottom: 8,
+												}}
+											>
+												<Text
+													style={{
+														fontSize: 12,
+														fontWeight: '600',
+														color: getStatusTextColor(order.status),
+													}}
+												>
+													{order.status}
+												</Text>
+											</View>
+											<Ionicons
+												name={expandedOrder === order.id ? 'chevron-up' : 'chevron-down'}
+												size={20}
+												color="#9ca3af"
+											/>
+										</View>
 									</TouchableOpacity>
 
 									{expandedOrder === order.id && (
-										<View className="mt-4 space-y-2">
-											{order.items.map((item, index) => (
-												<View key={index} className="flex-row justify-between">
-													<Text className="text-sm">
-														{item.name} ({item.weight}) x {item.qty}
+										<View
+											style={{
+												marginTop: 16,
+												paddingTop: 16,
+												borderTopWidth: 1,
+												borderTopColor: '#f1f5f9',
+											}}
+										>
+											{/* Items list */}
+											<View style={{ marginBottom: 16 }}>
+												<Text
+													style={{
+														fontSize: 14,
+														fontWeight: '600',
+														color: '#374151',
+														marginBottom: 8,
+													}}
+												>
+													Items
+												</Text>
+												{order.items.map((item, itemIndex) => (
+													<View
+														key={itemIndex}
+														style={{
+															flexDirection: 'row',
+															justifyContent: 'space-between',
+															alignItems: 'center',
+															paddingVertical: 8,
+															paddingHorizontal: 12,
+															backgroundColor: '#f8fafc',
+															borderRadius: 10,
+															marginBottom: 6,
+														}}
+													>
+														<View style={{ flex: 1 }}>
+															<Text
+																style={{
+																	fontSize: 14,
+																	fontWeight: '500',
+																	color: '#1e293b',
+																	marginBottom: 1,
+																}}
+															>
+																{item.name}
+															</Text>
+															<Text
+																style={{
+																	fontSize: 12,
+																	color: '#64748b',
+																}}
+															>
+																{item.weight} × {item.qty}
+															</Text>
+														</View>
+														<Text
+															style={{
+																fontSize: 10,
+																color: '#64748b',
+																backgroundColor: '#e2e8f0',
+																paddingHorizontal: 8,
+																paddingVertical: 4,
+																borderRadius: 6,
+															}}
+														>
+															{item.from}
+														</Text>
+													</View>
+												))}
+											</View>
+
+											{/* Delivery info */}
+											<View
+												style={{
+													backgroundColor: '#f8fafc',
+													padding: 14,
+													borderRadius: 12,
+													marginBottom: 16,
+												}}
+											>
+												<Text
+													style={{
+														fontSize: 14,
+														color: '#374151',
+														marginBottom: 6,
+													}}
+												>
+													<Text style={{ fontWeight: '600' }}>Delivery To: </Text>
+													{order.deliveryTo}
+												</Text>
+												<Text
+													style={{
+														fontSize: 20,
+														fontWeight: 'bold',
+														color: '#1e293b',
+													}}
+												>
+													₹{order.amount.toLocaleString()}
+													<Text
+														style={{
+															fontSize: 14,
+															fontWeight: '500',
+															marginLeft: 6,
+															color: order.paid ? '#059669' : '#dc2626',
+														}}
+													>
+														{order.paid ? ' (Paid)' : ' (Unpaid)'}
 													</Text>
-													<Text className="text-sm text-gray-400">{item.from}</Text>
-												</View>
-											))}
+												</Text>
+											</View>
 
-											<Text className="text-sm">Delivery To: {order.deliveryTo}</Text>
-											<Text className="text-sm">
-												₹{order.amount} {order.paid ? '(Paid)' : '(Unpaid)'}
-											</Text>
-
-											<View className="flex-row justify-between mt-2">
-												<TouchableOpacity className="bg-teal-600 px-4 py-2 rounded-full">
-													<Text className="text-white font-semibold text-sm">Confirm Pickup</Text>
+											{/* Action buttons */}
+											<View
+												style={{
+													flexDirection: 'row',
+													gap: 10,
+												}}
+											>
+												<TouchableOpacity
+													style={{
+														flex: 1,
+														backgroundColor: '#059669',
+														paddingVertical: 12,
+														borderRadius: 12,
+													}}
+												>
+													<Text
+														style={{
+															color: '#ffffff',
+															fontWeight: 'bold',
+															textAlign: 'center',
+															fontSize: 14,
+														}}
+													>
+														Confirm Pickup
+													</Text>
 												</TouchableOpacity>
-												<TouchableOpacity className="border border-gray-300 px-4 py-2 rounded-full">
-													<Text className="text-gray-600 font-semibold text-sm">Update Status</Text>
+												<TouchableOpacity
+													onPress={() => openStatusModal(order.id)}
+													style={{
+														flex: 1,
+														backgroundColor: '#ffffff',
+														borderWidth: 1.5,
+														borderColor: '#e2e8f0',
+														paddingVertical: 12,
+														borderRadius: 12,
+													}}
+												>
+													<Text
+														style={{
+															color: '#374151',
+															fontWeight: 'bold',
+															textAlign: 'center',
+															fontSize: 14,
+														}}
+													>
+														Update Status
+													</Text>
 												</TouchableOpacity>
 											</View>
 										</View>
@@ -179,21 +607,138 @@ export default function OrdersScreen() {
 					))
 				)}
 			</ScrollView>
+
+			{/* Status Selection Modal */}
+			<Modal
+				animationType="slide"
+				transparent={true}
+				visible={showStatusModal}
+				onRequestClose={() => setShowStatusModal(false)}
+			>
+				<View
+					style={{
+						flex: 1,
+						justifyContent: 'flex-end',
+						backgroundColor: 'rgba(0, 0, 0, 0.5)',
+					}}
+				>
+					<View
+						style={{
+							backgroundColor: '#ffffff',
+							borderTopLeftRadius: 20,
+							borderTopRightRadius: 20,
+							paddingTop: 20,
+							paddingHorizontal: 20,
+							paddingBottom: 40,
+							maxHeight: '70%',
+						}}
+					>
+						{/* Modal Header */}
+						<View
+							style={{
+								flexDirection: 'row',
+								justifyContent: 'space-between',
+								alignItems: 'center',
+								marginBottom: 20,
+							}}
+						>
+							<Text
+								style={{
+									fontSize: 20,
+									fontWeight: 'bold',
+									color: '#1e293b',
+								}}
+							>
+								Update Status
+							</Text>
+							<TouchableOpacity
+								onPress={() => setShowStatusModal(false)}
+								style={{
+									padding: 8,
+									borderRadius: 8,
+									backgroundColor: '#f1f5f9',
+								}}
+							>
+								<Ionicons name="close" size={20} color="#64748b" />
+							</TouchableOpacity>
+						</View>
+
+						{/* Status Options */}
+						<ScrollView showsVerticalScrollIndicator={false}>
+							{statusOptions.map((status, index) => (
+								<TouchableOpacity
+									key={status}
+									onPress={() => updateOrderStatus(status)}
+									style={{
+										flexDirection: 'row',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										paddingVertical: 16,
+										paddingHorizontal: 16,
+										marginBottom: 8,
+										backgroundColor: '#f8fafc',
+										borderRadius: 12,
+										borderWidth: 1,
+										borderColor: '#f1f5f9',
+									}}
+								>
+									<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+										<View
+											style={{
+												width: 12,
+												height: 12,
+												borderRadius: 6,
+												backgroundColor: getStatusStyle(status),
+												marginRight: 12,
+											}}
+										/>
+										<Text
+											style={{
+												fontSize: 16,
+												fontWeight: '500',
+												color: '#1e293b',
+											}}
+										>
+											{status}
+										</Text>
+									</View>
+									<Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+								</TouchableOpacity>
+							))}
+						</ScrollView>
+					</View>
+				</View>
+			</Modal>
 		</SafeAreaView>
 	);
 }
 
-const getStatusColor = (status: string) => {
+const getStatusStyle = (status: string) => {
 	switch (status) {
 		case 'Pickup Pending':
-			return 'bg-yellow-100 text-yellow-700';
+			return '#fef3c7';
 		case 'Pickup Failed':
-			return 'bg-red-100 text-red-700';
+			return '#fee2e2';
 		case 'Pickup Rescheduled':
-			return 'bg-orange-100 text-orange-700';
+			return '#fed7aa';
 		case 'Delivered':
-			return 'bg-green-100 text-green-700';
+			return '#dcfce7';
 		default:
-			return 'bg-gray-100 text-gray-600';
+			return '#f3f4f6';
+	}
+};
+
+const getStatusTextColor = (status: string) => {
+	switch (status) {
+		case 'Pickup Pending':
+			return '#d97706';
+		case 'Pickup Failed':
+			return '#dc2626';
+		case 'Pickup Rescheduled':
+			return '#ea580c';
+		case 'Delivered':
+			return '#059669';
+		default:
+			return '#6b7280';
 	}
 };

@@ -61,7 +61,7 @@ export default function RootLayout() {
 					'detailsSubmit',
 					'driverId',
 				]);
-
+				console.log(driverId);
 				const hasVerification = isVerified[1] === 'true';
 				const hasDriverId = driverId[1] !== null;
 
