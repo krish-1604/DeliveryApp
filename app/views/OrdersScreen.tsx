@@ -98,6 +98,8 @@ export default function OrdersScreen() {
 	const [error, setError] = useState<string | null>(null);
 	const [currentOrder, setCurrentOrder] = useState<string | null>(null);
 	const [token, setToken] = useState<string | null>(null);
+	const [isAvailable, setIsAvailable] = useState(false);
+	const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
@@ -260,6 +262,42 @@ export default function OrdersScreen() {
 		}
 	}
 
+	const handleAvailabilityChange = async (status: boolean) => {
+		//TODO
+		const URL = baseUrl + '/api/orders/driver/status';
+		const availability = status ? 'AVAILABLE' : 'OFFLINE';
+		try {
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					availability: availability,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! Status: ${response.status}`);
+			}
+
+			const data = await response.json();
+
+			if (data.success) {
+				console.log('✅ Status updated:', data.message);
+				setIsAvailable(status);
+				return { success: true, message: data.message };
+			} else {
+				console.error('❌ Failed to update status:', data.message);
+				return { success: false, message: data.message };
+			}
+		} catch (error) {
+			console.error('Error updating status:', error);
+			return { success: false, message: error };
+		}
+	};
+
 	const openStatusModal = (orderId: string) => {
 		setSelectedOrderId(orderId);
 		setShowStatusModal(true);
@@ -339,7 +377,7 @@ export default function OrdersScreen() {
 					</Text>
 				</View>
 
-				{/* Tab selector and date picker */}
+				{/* Dropdown selector and availability toggle */}
 				<View
 					style={{
 						flexDirection: 'row',
@@ -347,69 +385,262 @@ export default function OrdersScreen() {
 						alignItems: 'center',
 					}}
 				>
-					<View
-						style={{
-							flexDirection: 'row',
-							backgroundColor: '#f8fafc',
-							borderRadius: 12,
-							padding: 3,
-						}}
-					>
-						{['Accepted', 'Available'].map((type) => (
-							<TouchableOpacity
-								key={type}
-								onPress={() => setSelectedTab(type as 'Accepted' | 'Available')}
-								style={{
-									paddingHorizontal: 16,
-									paddingVertical: 8,
-									borderRadius: 9,
-									backgroundColor: selectedTab === type ? '#ffffff' : 'transparent',
-									shadowColor: selectedTab === type ? '#000' : 'transparent',
-									shadowOffset: { width: 0, height: 1 },
-									shadowOpacity: selectedTab === type ? 0.1 : 0,
-									shadowRadius: 2,
-									elevation: selectedTab === type ? 1 : 0,
-								}}
-							>
-								<Text
-									style={{
-										fontSize: 14,
-										fontWeight: '600',
-										color: selectedTab === type ? '#2563eb' : '#64748b',
-									}}
-								>
-									{type}
-								</Text>
-							</TouchableOpacity>
-						))}
-					</View>
-
+					{/* Order Type Dropdown - REPLACED TABS */}
 					<TouchableOpacity
+						onPress={() => setDropdownVisible(true)}
 						style={{
 							flexDirection: 'row',
 							alignItems: 'center',
 							backgroundColor: '#ffffff',
+							borderRadius: 12,
+							paddingHorizontal: 16,
+							paddingVertical: 12,
 							borderWidth: 1,
 							borderColor: '#e2e8f0',
-							paddingHorizontal: 12,
-							paddingVertical: 8,
-							borderRadius: 10,
+							shadowColor: '#000',
+							shadowOffset: { width: 0, height: 1 },
+							shadowOpacity: 0.05,
+							shadowRadius: 2,
+							elevation: 1,
 						}}
 					>
+						<Ionicons
+							name={selectedTab === 'Accepted' ? 'checkmark-circle-outline' : 'time-outline'}
+							size={18}
+							color="#2563eb"
+							style={{ marginRight: 8 }}
+						/>
 						<Text
 							style={{
-								fontSize: 14,
-								fontWeight: '500',
-								marginRight: 6,
-								color: '#374151',
+								fontSize: 16,
+								fontWeight: '600',
+								color: '#1e293b',
+								marginRight: 8,
 							}}
 						>
-							{selectedDate}
+							{selectedTab} Orders
 						</Text>
-						<Ionicons name="chevron-down" size={16} color="#9ca3af" />
+						<Ionicons name="chevron-down" size={16} color="#64748b" />
 					</TouchableOpacity>
+
+					{/* Compact Availability Toggle - UNCHANGED */}
+					<View
+						style={{
+							flexDirection: 'row',
+							alignItems: 'center',
+							backgroundColor: '#ffffff',
+							borderRadius: 12,
+							padding: 4,
+							borderWidth: 1,
+							borderColor: '#e2e8f0',
+						}}
+					>
+						<TouchableOpacity
+							onPress={() => handleAvailabilityChange(true)}
+							style={{
+								flexDirection: 'row',
+								alignItems: 'center',
+								paddingHorizontal: 12,
+								paddingVertical: 6,
+								borderRadius: 8,
+								backgroundColor: isAvailable ? '#dcfce7' : 'transparent',
+							}}
+						>
+							<View
+								style={{
+									width: 8,
+									height: 8,
+									borderRadius: 4,
+									backgroundColor: isAvailable ? '#16a34a' : '#d1d5db',
+									marginRight: 6,
+								}}
+							/>
+							<Text
+								style={{
+									fontSize: 12,
+									fontWeight: '600',
+									color: isAvailable ? '#166534' : '#64748b',
+								}}
+							>
+								Online
+							</Text>
+						</TouchableOpacity>
+
+						<TouchableOpacity
+							onPress={() => handleAvailabilityChange(false)}
+							style={{
+								flexDirection: 'row',
+								alignItems: 'center',
+								paddingHorizontal: 12,
+								paddingVertical: 6,
+								borderRadius: 8,
+								backgroundColor: !isAvailable ? '#fee2e2' : 'transparent',
+							}}
+						>
+							<View
+								style={{
+									width: 8,
+									height: 8,
+									borderRadius: 4,
+									backgroundColor: !isAvailable ? '#dc2626' : '#d1d5db',
+									marginRight: 6,
+								}}
+							/>
+							<Text
+								style={{
+									fontSize: 12,
+									fontWeight: '600',
+									color: !isAvailable ? '#991b1b' : '#64748b',
+								}}
+							>
+								Offline
+							</Text>
+						</TouchableOpacity>
+					</View>
 				</View>
 			</View>
+
+			{/* ADD THIS: Dropdown Modal */}
+			<Modal
+				visible={dropdownVisible}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setDropdownVisible(false)}
+			>
+				<TouchableOpacity
+					activeOpacity={1}
+					onPress={() => setDropdownVisible(false)}
+					style={{
+						flex: 1,
+						backgroundColor: 'rgba(0, 0, 0, 0.3)',
+						justifyContent: 'flex-start',
+						paddingTop: 120,
+						paddingHorizontal: 20,
+					}}
+				>
+					<View
+						style={{
+							backgroundColor: '#ffffff',
+							borderRadius: 16,
+							padding: 8,
+							shadowColor: '#000',
+							shadowOffset: { width: 0, height: 4 },
+							shadowOpacity: 0.15,
+							shadowRadius: 12,
+							elevation: 8,
+						}}
+					>
+						{/* Accepted Orders Option */}
+						<TouchableOpacity
+							onPress={() => {
+								setSelectedTab('Accepted');
+								setDropdownVisible(false);
+							}}
+							style={{
+								flexDirection: 'row',
+								alignItems: 'center',
+								paddingHorizontal: 16,
+								paddingVertical: 14,
+								borderRadius: 12,
+								backgroundColor: selectedTab === 'Accepted' ? '#f0f9ff' : 'transparent',
+								marginBottom: 4,
+							}}
+						>
+							<View
+								style={{
+									backgroundColor: selectedTab === 'Accepted' ? '#dbeafe' : '#f1f5f9',
+									padding: 8,
+									borderRadius: 10,
+									marginRight: 12,
+								}}
+							>
+								<Ionicons
+									name="checkmark-circle-outline"
+									size={20}
+									color={selectedTab === 'Accepted' ? '#2563eb' : '#64748b'}
+								/>
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text
+									style={{
+										fontSize: 16,
+										fontWeight: '600',
+										color: selectedTab === 'Accepted' ? '#1e40af' : '#1e293b',
+										marginBottom: 2,
+									}}
+								>
+									Accepted Orders
+								</Text>
+								<Text
+									style={{
+										fontSize: 14,
+										color: selectedTab === 'Accepted' ? '#3b82f6' : '#64748b',
+									}}
+								>
+									Orders you have accepted
+								</Text>
+							</View>
+							{selectedTab === 'Accepted' && (
+								<Ionicons name="checkmark-circle" size={20} color="#10b981" />
+							)}
+						</TouchableOpacity>
+
+						{/* Available Orders Option */}
+						<TouchableOpacity
+							onPress={() => {
+								setSelectedTab('Available');
+								setDropdownVisible(false);
+							}}
+							style={{
+								flexDirection: 'row',
+								alignItems: 'center',
+								paddingHorizontal: 16,
+								paddingVertical: 14,
+								borderRadius: 12,
+								backgroundColor: selectedTab === 'Available' ? '#f0f9ff' : 'transparent',
+							}}
+						>
+							<View
+								style={{
+									backgroundColor: selectedTab === 'Available' ? '#dbeafe' : '#f1f5f9',
+									padding: 8,
+									borderRadius: 10,
+									marginRight: 12,
+								}}
+							>
+								<Ionicons
+									name="time-outline"
+									size={20}
+									color={selectedTab === 'Available' ? '#2563eb' : '#64748b'}
+								/>
+							</View>
+							<View style={{ flex: 1 }}>
+								<Text
+									style={{
+										fontSize: 16,
+										fontWeight: '600',
+										color: selectedTab === 'Available' ? '#1e40af' : '#1e293b',
+										marginBottom: 2,
+									}}
+								>
+									Available Orders
+								</Text>
+								<Text
+									style={{
+										fontSize: 14,
+										color: selectedTab === 'Available' ? '#3b82f6' : '#64748b',
+									}}
+								>
+									New orders waiting for acceptance
+								</Text>
+							</View>
+							{selectedTab === 'Available' && (
+								<Ionicons name="checkmark-circle" size={20} color="#10b981" />
+							)}
+						</TouchableOpacity>
+					</View>
+				</TouchableOpacity>
+			</Modal>
 
 			{/* Content area */}
 			<ScrollView
