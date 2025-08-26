@@ -10,6 +10,7 @@ import {
 	Modal,
 	Alert,
 	TextInput,
+	Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,73 +27,82 @@ interface Job {
 	createdAt: string; // can convert to Date object if needed
 }
 
-const allOrdersData = {
-	Accepted: [
-		{
-			id: '#M1001',
-			status: 'Delivered',
-			center: 'VIT Hostel Mess A',
-			items: [{ name: 'North Indian Thali', qty: 1, weight: '1 plate', from: 'Mess A' }],
-			deliveryTo: 'Room 304, Block 1',
-			amount: 120,
-			paid: true,
-		},
-		{
-			id: '#M1002',
-			status: 'Pickup Pending',
-			center: 'VIT Hostel Mess C',
-			items: [{ name: 'South Indian Meal', qty: 2, weight: '2 plates', from: 'Mess C' }],
-			deliveryTo: 'Room 101, Block 3',
-			amount: 240,
-			paid: false,
-		},
-		{
-			id: '#M1003',
-			status: 'Pickup Failed',
-			center: 'VIT Hostel Mess B',
-			items: [{ name: 'Continental Breakfast', qty: 1, weight: '1 plate', from: 'Mess B' }],
-			deliveryTo: 'Room 205, Block 2',
-			amount: 180,
-			paid: true,
-		},
-	],
-	Available: [
-		{
-			id: '#S2001',
-			status: 'Pickup Pending',
-			center: 'IEEE Computer Society',
-			items: [
-				{ name: 'Besan Ladoo', qty: 2, weight: '500g', from: 'Bombay Anand Bhavan' },
-				{ name: 'Atta Ladoo', qty: 3, weight: '500g', from: 'Sri Krishna Sweets' },
-			],
-			deliveryTo: 'VIT, Katpadi',
-			amount: 2300,
-			paid: true,
-		},
-		{
-			id: '#S2002',
-			status: 'Pickup Failed',
-			center: 'NSS Store',
-			items: [{ name: 'Dry Fruits', qty: 1, weight: '1kg', from: 'Reliance Mart' }],
-			deliveryTo: 'AB1 Gate',
-			amount: 800,
-			paid: false,
-		},
-	],
-};
+export interface Address {
+	zip: string;
+	city: string;
+	street: string;
+}
 
-// Available status options
-const statusOptions = ['Pickup Pending', 'Pickup Failed', 'Pickup Rescheduled', 'Delivered'];
+export interface CustomerDetails {
+	name: string;
+	phone: string;
+}
+
+export interface Order {
+	id: string;
+	externalOrderId: string;
+	sourceAddress: Address;
+	destinationAddress: Address;
+	customerDetails: CustomerDetails;
+	price: number;
+	numberOfItems: number;
+	status: 'ACCEPTED' | 'DELIVERED' | 'CANCELLED';
+	driverId: string;
+	deliveryOtp: string | null;
+	deliveryOtpExpiresAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
 
 export default function OrdersScreen() {
+	const placeholderJobs: Job[] = [
+		{
+			id: 'job_001',
+			externalOrderId: 'EXT12345',
+			sourceAddress: '123 Main St, Springfield',
+			destinationAddress: '456 Elm St, Shelbyville',
+			price: 250,
+			createdAt: new Date('2025-08-25T10:00:00Z').toISOString(),
+		},
+		{
+			id: 'job_002',
+			externalOrderId: 'EXT12346',
+			sourceAddress: '789 Oak St, Springfield',
+			destinationAddress: '321 Pine St, Shelbyville',
+			price: 320,
+			createdAt: new Date('2025-08-25T11:30:00Z').toISOString(),
+		},
+		{
+			id: 'job_003',
+			externalOrderId: 'EXT12347',
+			sourceAddress: '555 Maple St, Springfield',
+			destinationAddress: '888 Birch St, Shelbyville',
+			price: 180,
+			createdAt: new Date('2025-08-25T12:15:00Z').toISOString(),
+		},
+		{
+			id: 'job_004',
+			externalOrderId: 'EXT12348',
+			sourceAddress: '101 Cedar St, Springfield',
+			destinationAddress: '202 Walnut St, Shelbyville',
+			price: 400,
+			createdAt: new Date('2025-08-25T13:45:00Z').toISOString(),
+		},
+		{
+			id: 'job_005',
+			externalOrderId: 'EXT12349',
+			sourceAddress: '303 Cherry St, Springfield',
+			destinationAddress: '404 Poplar St, Shelbyville',
+			price: 220,
+			createdAt: new Date('2025-08-25T14:30:00Z').toISOString(),
+		},
+	];
+	const [order, setOrder] = useState<Order>();
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 	const [selectedTab, setSelectedTab] = useState<'Available' | 'Accepted'>('Available');
-	const [selectedDate] = useState<string>('24/04/2025');
 	const [showStatusModal, setShowStatusModal] = useState(false);
-	const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-	const [orders, setOrders] = useState(allOrdersData);
 	const [availOrders, setAvailOrders] = useState<Job[]>([]); //TODO Array of available orders from API on load
 	const [loading, setLoading] = useState(false); // TODO
 	const [error, setError] = useState<string | null>(null);
@@ -105,38 +115,53 @@ export default function OrdersScreen() {
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
 	};
+	const fetchPendingJobs = async () => {
+		setLoading(true);
+		console.log('Orders loading');
+		setError(null);
+		const token = await AsyncStorage.getItem('auth_token');
+		setToken(token);
+		console.log('Orders API', token);
 
-	useEffect(() => {
-		const fetchPendingJobs = async () => {
-			//TODO
-			setLoading(true);
-			setError(null);
-			const token = await AsyncStorage.getItem('auth_token');
-			setToken(token);
-			const URL = baseUrl + '/api/orders/driver/jobs/pending';
-			try {
-				const response = await fetch(URL, {
-					method: 'GET',
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				});
+		const URL = baseUrl + '/api/orders/driver/jobs/pending';
+		try {
+			const response = await fetch(URL, {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			//console.log(response);
+			const data = await response.json();
+			console.log(data);
 
-				if (!response.ok) {
-					throw new Error(`Error ${response.status}: ${response.statusText}`);
-				}
-
-				const data = await response.json();
-				if (data.success) {
-					setAvailOrders(data.jobs);
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Unknown error');
-			} finally {
-				setLoading(false);
+			if (!response.ok) {
+				throw new Error(`Error ${response.status}: ${response.statusText}`);
 			}
+
+			if (data.success) {
+				console.log(data);
+				setAvailOrders(data.jobs);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Unknown error');
+			console.log('error');
+		} finally {
+			setLoading(false);
+			console.log('Orders finished loading');
+		}
+	};
+	useEffect(() => {
+		const fetchAvailabilityAndJobs = async () => {
+			const temp = await AsyncStorage.getItem('availability');
+			const curr_order = await AsyncStorage.getItem('accepted_order');
+			console.log(curr_order);
+			setSelectedTab(curr_order ? 'Accepted' : 'Available');
+			setOrder(curr_order ? JSON.parse(curr_order) : null);
+			setIsAvailable(temp == 'true' ? true : false);
+			fetchPendingJobs();
 		};
-		fetchPendingJobs();
+		fetchAvailabilityAndJobs();
 	}, []);
 
 	const [loadingPickup, setLoadingPickup] = useState(false);
@@ -147,19 +172,56 @@ export default function OrdersScreen() {
 		const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/accept`;
 		console.log(URL);
 		try {
-			const res = await fetch(URL, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
-			console.log(res);
+			// const res = await fetch(URL, {
+			// 	method: 'POST',
+			// 	headers: {
+			// 		Authorization: `Bearer ${token}`,
+			// 	},
+			// });
+			// console.log(res);
+			const res = { status: 200 };
 			if (res.status === 200) {
-				const data = await res.json();
+				const data = {
+					//FIX to res.json()
+					success: true,
+					message: 'Job accepted successfully!',
+					order: {
+						id: 'cmdqwuevq00011uba8goumedq',
+						externalOrderId: '6',
+						sourceAddress: {
+							zip: '10001',
+							city: 'Tech City',
+							street: '123 Warehouse Lane',
+						},
+						destinationAddress: {
+							zip: '90210',
+							city: 'Client Town',
+							street: '456 Customer Ave',
+						},
+						customerDetails: {
+							name: 'John Doe',
+							phone: '+919599697117',
+						},
+						price: 25.5,
+						numberOfItems: 3,
+						status: 'ACCEPTED',
+						driverId: 'cmdqw5n1z0002bjg8e5ukseq2',
+						deliveryOtp: null,
+						deliveryOtpExpiresAt: null,
+						createdAt: '2025-07-31T04:44:27.734Z',
+						updatedAt: '2025-07-31T04:45:10.325Z',
+					},
+				};
 				console.log('Pickup confirmed:', data);
 
 				if (data.success) {
 					alert(data.message || 'Job accepted successfully!');
+					await AsyncStorage.setItem('accepted_order', JSON.stringify(data.order));
+					console.log(JSON.stringify(data.order));
+					setOrder({
+						...data.order,
+						status: 'ACCEPTED', // Ensure status is a valid Order status literal
+					});
 					setCurrentOrder((prev) => [...prev, orderId]);
 					setSelectedTab('Accepted');
 				} else {
@@ -191,26 +253,26 @@ export default function OrdersScreen() {
 		try {
 			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
 			console.log(URL);
-			const response = await fetch(URL, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${token}`,
-					'Content-Type': 'application/json',
-				},
-			});
+			// const response = await fetch(URL, {
+			// 	method: 'POST',
+			// 	headers: {
+			// 		Authorization: `Bearer ${token}`,
+			// 		'Content-Type': 'application/json',
+			// 	},
+			// });
 
-			console.log(response);
-			const data = await response.json();
-			if (response.ok && data.success) {
-				console.log('✅ OTP sent successfully:', data.message);
-				setOtpModalVisible(true); // Open OTP modal
-			} else {
-				console.error('❌ Failed to send OTP:', data.message);
-				Alert.alert(
-					'OTP Failed',
-					`Status: ${response.status} - ${data.message || 'Unknown error'}`
-				);
-			}
+			// console.log(response);
+			// const data = await response.json();
+			// if (response.ok && data.success) {
+			// 	console.log('✅ OTP sent successfully:', data.message);
+			// 	setOtpModalVisible(true); // Open OTP modal
+			// } else {
+			// 	console.error('❌ Failed to send OTP:', data.message);
+			// 	Alert.alert(
+			// 		'OTP Failed',
+			// 		`Status: ${response.status} - ${data.message || 'Unknown error'}`
+			// 	);
+			// }
 		} catch (error: any) {
 			console.error('⚠️ Error sending OTP:', error);
 			Alert.alert('OTP Failed', `An unexpected error occurred.`);
@@ -280,16 +342,20 @@ export default function OrdersScreen() {
 					availability: availability,
 				}),
 			});
+			const data = await response.json();
+			console.log(data);
 
 			if (!response.ok) {
 				throw new Error(`HTTP error! Status: ${response.status}`);
 			}
 
-			const data = await response.json();
-
 			if (data.success) {
 				console.log('✅ Status updated:', data.message);
 				setIsAvailable(status);
+				await AsyncStorage.setItem('availability', JSON.stringify(status));
+				if (status == true) {
+					fetchPendingJobs();
+				}
 				return { success: true, message: data.message };
 			} else {
 				console.error('❌ Failed to update status:', data.message);
@@ -301,41 +367,8 @@ export default function OrdersScreen() {
 		}
 	};
 
-	const openStatusModal = (orderId: string) => {
-		setSelectedOrderId(orderId);
-		setShowStatusModal(true);
-	};
-
-	const updateOrderStatus = (newStatus: string) => {
-		if (!selectedOrderId) return;
-
-		setOrders((prevOrders) => {
-			const updatedOrders = { ...prevOrders };
-
-			// Update in both tabs
-			Object.keys(updatedOrders).forEach((tab) => {
-				updatedOrders[tab as keyof typeof updatedOrders] = updatedOrders[
-					tab as keyof typeof updatedOrders
-				].map((order) => (order.id === selectedOrderId ? { ...order, status: newStatus } : order));
-			});
-
-			return updatedOrders;
-		});
-
-		setShowStatusModal(false);
-		setSelectedOrderId(null);
-	};
-
-	const ordersData = orders[selectedTab];
-
-	const groupedOrders = ordersData.reduce(
-		(acc, order) => {
-			if (!acc[order.center]) acc[order.center] = [];
-			acc[order.center].push(order);
-			return acc;
-		},
-		{} as Record<string, typeof ordersData>
-	);
+	const ordersData = placeholderJobs;
+	//const ordersData: Job[] = [];
 
 	return (
 		<SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
@@ -380,7 +413,6 @@ export default function OrdersScreen() {
 					</Text>
 				</View>
 
-				{/* Dropdown selector and availability toggle */}
 				<View
 					style={{
 						flexDirection: 'row',
@@ -392,6 +424,7 @@ export default function OrdersScreen() {
 					<TouchableOpacity
 						onPress={() => setDropdownVisible(true)}
 						style={{
+							height: 44,
 							flexDirection: 'row',
 							alignItems: 'center',
 							backgroundColor: '#ffffff',
@@ -426,16 +459,17 @@ export default function OrdersScreen() {
 						<Ionicons name="chevron-down" size={16} color="#64748b" />
 					</TouchableOpacity>
 
-					{/* Compact Availability Toggle - UNCHANGED */}
 					<View
 						style={{
+							display: selectedTab === 'Accepted' ? 'none' : 'flex',
 							flexDirection: 'row',
-							alignItems: 'center',
+							alignItems: 'stretch',
 							backgroundColor: '#ffffff',
 							borderRadius: 12,
 							padding: 4,
 							borderWidth: 1,
 							borderColor: '#e2e8f0',
+							height: 44, // Set a fixed height matching the row's height
 						}}
 					>
 						<TouchableOpacity
@@ -447,6 +481,8 @@ export default function OrdersScreen() {
 								paddingVertical: 6,
 								borderRadius: 8,
 								backgroundColor: isAvailable ? '#dcfce7' : 'transparent',
+								//flex: 1,
+								height: '100%',
 							}}
 						>
 							<View
@@ -478,6 +514,8 @@ export default function OrdersScreen() {
 								paddingVertical: 6,
 								borderRadius: 8,
 								backgroundColor: !isAvailable ? '#fee2e2' : 'transparent',
+								//flex: 1,
+								height: '100%',
 							}}
 						>
 							<View
@@ -503,7 +541,7 @@ export default function OrdersScreen() {
 				</View>
 			</View>
 
-			{/* ADD THIS: Dropdown Modal */}
+			{/* Accepted vs Available orders selector */}
 			<Modal
 				visible={dropdownVisible}
 				transparent
@@ -645,384 +683,538 @@ export default function OrdersScreen() {
 				</TouchableOpacity>
 			</Modal>
 
-			{/* Content area */}
 			<ScrollView
 				style={{ flex: 1, backgroundColor: '#f8fafc' }}
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, paddingBottom: 80 }}
 			>
-				{Object.keys(groupedOrders).length === 0 ? (
+				{ordersData.length === 0 || !isAvailable ? (
 					<View
 						style={{
 							flex: 1,
 							alignItems: 'center',
 							justifyContent: 'center',
-							marginTop: 100,
+							paddingHorizontal: 32,
+							marginTop: 80,
 						}}
 					>
+						{/* Icon Container with Gradient-like Effect */}
 						<View
 							style={{
-								backgroundColor: '#f1f5f9',
-								padding: 32,
-								borderRadius: 32,
-								marginBottom: 24,
+								backgroundColor: '#f8fafc',
+								padding: 40,
+								borderRadius: 40,
+								marginBottom: 32,
+								borderWidth: 1,
+								borderColor: '#e2e8f0',
+								shadowColor: '#000',
+								shadowOffset: { width: 0, height: 4 },
+								shadowOpacity: 0.05,
+								shadowRadius: 12,
+								elevation: 3,
 							}}
 						>
-							<Ionicons name="bag-outline" size={80} color="#9ca3af" />
+							<Ionicons name="receipt-outline" size={72} color="#64748b" />
 						</View>
+
+						{/* Main Title */}
 						<Text
 							style={{
-								color: '#64748b',
-								fontSize: 24,
-								fontWeight: '600',
-								marginBottom: 8,
+								color: '#1e293b',
+								fontSize: 26,
+								fontWeight: '700',
+								marginBottom: 12,
+								textAlign: 'center',
 							}}
 						>
 							No {selectedTab} Orders
 						</Text>
+
+						{/* Subtitle */}
 						<Text
 							style={{
-								color: '#94a3b8',
+								color: '#64748b',
 								fontSize: 16,
 								textAlign: 'center',
 								lineHeight: 24,
+								marginBottom: 24,
+								maxWidth: 280,
 							}}
 						>
-							{selectedTab} orders will appear here when available
+							{selectedTab === 'Available'
+								? 'New orders will appear here when customers place them in your area'
+								: 'Your accepted orders will show up here once you confirm pickup'}
 						</Text>
-					</View>
-				) : (
-					Object.entries(groupedOrders).map(([centerName, orders]) => (
-						<View key={centerName} style={{ marginBottom: 32 }}>
-							{/* Center Header */}
+
+						{/* Status Indicators */}
+						<View
+							style={{
+								backgroundColor: '#ffffff',
+								padding: 20,
+								borderRadius: 16,
+								borderWidth: 1,
+								borderColor: '#e2e8f0',
+								width: '100%',
+								maxWidth: 300,
+							}}
+						>
+							<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+								<View
+									style={{
+										width: 8,
+										height: 8,
+										borderRadius: 4,
+										backgroundColor: isAvailable ? '#10b981' : '#f59e0b',
+										marginRight: 12,
+									}}
+								/>
+								<Text
+									style={{
+										fontSize: 14,
+										color: '#374151',
+										fontWeight: '600',
+									}}
+								>
+									Status: {isAvailable ? 'Online & Available' : 'Offline'}
+								</Text>
+							</View>
+
+							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+								<View
+									style={{
+										width: 8,
+										height: 8,
+										borderRadius: 4,
+										backgroundColor: ordersData.length === 0 ? '#ef4444' : '#10b981',
+										marginRight: 12,
+									}}
+								/>
+								<Text
+									style={{
+										fontSize: 14,
+										color: '#374151',
+										fontWeight: '600',
+									}}
+								>
+									Orders:{' '}
+									{ordersData.length === 0 ? 'None Available' : `${ordersData.length} Found`}
+								</Text>
+							</View>
+						</View>
+
+						{/* Action Hint */}
+						{!isAvailable && (
 							<View
+								style={{
+									backgroundColor: '#fef3c7',
+									padding: 16,
+									borderRadius: 12,
+									marginTop: 20,
+									borderWidth: 1,
+									borderColor: '#fbbf24',
+									width: '100%',
+									maxWidth: 300,
+								}}
+							>
+								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+									<Text style={{ fontSize: 16, marginRight: 8 }}>⚠️</Text>
+									<Text
+										style={{
+											fontSize: 14,
+											color: '#92400e',
+											fontWeight: '600',
+											flex: 1,
+										}}
+									>
+										Go online to start receiving orders
+									</Text>
+								</View>
+							</View>
+						)}
+
+						{isAvailable && ordersData.length === 0 && (
+							<View
+								style={{
+									backgroundColor: '#dbeafe',
+									padding: 16,
+									borderRadius: 12,
+									marginTop: 20,
+									borderWidth: 1,
+									borderColor: '#3b82f6',
+									width: '100%',
+									maxWidth: 300,
+								}}
+							>
+								<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+									<Text style={{ fontSize: 16, marginRight: 8 }}>💡</Text>
+									<Text
+										style={{
+											fontSize: 14,
+											color: '#1e40af',
+											fontWeight: '600',
+											flex: 1,
+										}}
+									>
+										Stay nearby for faster order assignments
+									</Text>
+								</View>
+							</View>
+						)}
+					</View>
+				) : selectedTab === 'Available' ? (
+					ordersData.map((order) => (
+						<View
+							key={order.id}
+							style={{
+								marginBottom: 12,
+								backgroundColor: '#ffffff',
+								borderRadius: 12,
+								shadowColor: '#000',
+								shadowOffset: { width: 0, height: 1 },
+								shadowOpacity: 0.05,
+								shadowRadius: 4,
+								elevation: 2,
+								borderWidth: 1,
+								borderColor: '#f1f5f9',
+							}}
+						>
+							{/* Header with Order ID and Chevron */}
+							<TouchableOpacity
+								onPress={() => toggleExpand(order.id)}
 								style={{
 									flexDirection: 'row',
 									justifyContent: 'space-between',
 									alignItems: 'center',
-									marginBottom: 16,
-									paddingHorizontal: 4,
+									paddingHorizontal: 16,
+									paddingVertical: 16,
 								}}
 							>
 								<View style={{ flex: 1 }}>
 									<Text
 										style={{
-											fontSize: 18,
-											fontWeight: 'bold',
+											fontSize: 16,
+											fontWeight: '600',
 											color: '#1e293b',
-											marginBottom: 4,
 										}}
 									>
-										{centerName}
+										Order ID: {order.externalOrderId}
 									</Text>
 									<Text
 										style={{
-											fontSize: 14,
+											fontSize: 13,
 											color: '#64748b',
+											marginTop: 2,
 										}}
 									>
-										{orders.length} order{orders.length !== 1 ? 's' : ''}
+										{new Date(order.createdAt).toLocaleDateString('en-US', {
+											day: 'numeric',
+											month: 'short',
+											year: 'numeric',
+										})}{' '}
+										•{' '}
+										{new Date(order.createdAt).toLocaleTimeString('en-US', {
+											hour: 'numeric',
+											minute: '2-digit',
+											hour12: true,
+										})}
 									</Text>
 								</View>
-								<View style={{ flexDirection: 'row', gap: 12 }}>
-									<TouchableOpacity
-										style={{
-											backgroundColor: '#fef3c7',
-											padding: 8,
-											borderRadius: 10,
-											width: 36,
-											height: 36,
-											alignItems: 'center',
-											justifyContent: 'center',
-											shadowColor: '#000',
-											shadowOffset: { width: 0, height: 2 },
-											shadowOpacity: 0.1,
-											shadowRadius: 4,
-										}}
-									>
-										<Ionicons name="call" size={16} color="#d97706" />
-									</TouchableOpacity>
-									<TouchableOpacity
-										style={{
-											backgroundColor: '#dcfce7',
-											padding: 8,
-											borderRadius: 10,
-											width: 36,
-											height: 36,
-											alignItems: 'center',
-											justifyContent: 'center',
-											shadowColor: '#000',
-											shadowOffset: { width: 0, height: 2 },
-											shadowOpacity: 0.1,
-											shadowRadius: 4,
-											elevation: 2,
-										}}
-									>
-										<Ionicons name="navigate" size={16} color="#059669" />
-									</TouchableOpacity>
-								</View>
-							</View>
 
-							{/* Orders */}
-							{orders.map((order, index) => (
+								{/* Chevron Icon */}
 								<View
-									key={order.id}
 									style={{
-										marginBottom: 12,
-										backgroundColor: '#ffffff',
-										borderRadius: 16,
-										padding: 16,
-										shadowColor: '#000',
-										shadowOffset: { width: 0, height: 2 },
-										shadowOpacity: 0.05,
-										shadowRadius: 8,
-										elevation: 2,
-										borderWidth: 1,
-										borderColor: '#f1f5f9',
+										transform: [{ rotate: expandedOrder === order.id ? '180deg' : '0deg' }],
+										marginLeft: 12,
 									}}
 								>
-									<TouchableOpacity
-										onPress={() => toggleExpand(order.id)}
+									<Ionicons name="chevron-down" size={22} color="#64748b" />
+								</View>
+							</TouchableOpacity>
+
+							{/* Expanded Details */}
+							{expandedOrder === order.id && (
+								<View
+									style={{
+										paddingHorizontal: 16,
+										paddingBottom: 16,
+										borderTopWidth: 1,
+										borderTopColor: '#f1f5f9',
+									}}
+								>
+									{/* Delivery Info Card */}
+									<View
 										style={{
-											flexDirection: 'row',
-											justifyContent: 'space-between',
-											alignItems: 'flex-start',
+											backgroundColor: '#f8fafc',
+											padding: 16,
+											borderRadius: 10,
+											marginTop: 12,
+											marginBottom: 16,
 										}}
 									>
-										<View style={{ flex: 1, marginRight: 12 }}>
+										{/* Source Address */}
+										<View style={{ marginBottom: 12 }}>
 											<Text
 												style={{
 													fontSize: 12,
-													color: '#64748b',
-													marginBottom: 3,
-												}}
-											>
-												Order No. {order.id}
-											</Text>
-											<Text
-												style={{
-													fontSize: 16,
-													color: '#1e293b',
+													color: '#6b7280',
 													fontWeight: '600',
-													lineHeight: 20,
-													marginBottom: 3,
+													textTransform: 'uppercase',
+													letterSpacing: 0.5,
+													marginBottom: 4,
 												}}
 											>
-												{order.items[0]?.name}
-												{order.items.length > 1 && ` +${order.items.length - 1} more`}
+												PICKUP FROM
 											</Text>
 											<Text
 												style={{
 													fontSize: 14,
-													color: '#475569',
+													color: '#374151',
+													lineHeight: 20,
 												}}
 											>
-												{order.items[0]?.weight}
+												{order.sourceAddress}
 											</Text>
 										</View>
 
-										<View style={{ alignItems: 'flex-end' }}>
+										{/* Destination Address */}
+										<View style={{ marginBottom: 12 }}>
+											<Text
+												style={{
+													fontSize: 12,
+													color: '#6b7280',
+													fontWeight: '600',
+													textTransform: 'uppercase',
+													letterSpacing: 0.5,
+													marginBottom: 4,
+												}}
+											>
+												DELIVER TO
+											</Text>
+											<Text
+												style={{
+													fontSize: 14,
+													color: '#374151',
+													lineHeight: 20,
+												}}
+											>
+												{order.destinationAddress}
+											</Text>
+										</View>
+
+										{/* Price and Status */}
+										<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+											<Text
+												style={{
+													fontSize: 22,
+													fontWeight: 'bold',
+													color: '#1e293b',
+												}}
+											>
+												₹{order.price}
+											</Text>
 											<View
 												style={{
-													paddingHorizontal: 12,
-													paddingVertical: 6,
-													borderRadius: 10,
-													backgroundColor: getStatusStyle(order.status),
-													marginBottom: 8,
+													backgroundColor: '#059669',
+													paddingHorizontal: 10,
+													paddingVertical: 4,
+													borderRadius: 16,
+													marginLeft: 12,
+													flexDirection: 'row',
+													alignItems: 'center',
+													shadowColor: '#059669',
+													shadowOffset: { width: 0, height: 1 },
+													shadowOpacity: 0.3,
+													shadowRadius: 2,
+													elevation: 2,
 												}}
 											>
 												<Text
 													style={{
-														fontSize: 12,
-														fontWeight: '600',
-														color: getStatusTextColor(order.status),
+														color: '#ffffff',
+														fontSize: 11,
+														fontWeight: '700',
+														marginRight: 4,
 													}}
 												>
-													{order.status}
+													✓
+												</Text>
+												<Text
+													style={{
+														fontSize: 11,
+														fontWeight: '700',
+														color: '#ffffff',
+														letterSpacing: 0.5,
+													}}
+												>
+													PAID
 												</Text>
 											</View>
-											<Ionicons
-												name={expandedOrder === order.id ? 'chevron-up' : 'chevron-down'}
-												size={20}
-												color="#9ca3af"
-											/>
 										</View>
-									</TouchableOpacity>
+									</View>
 
-									{expandedOrder === order.id && (
-										<View
+									{/* Action Button */}
+									<TouchableOpacity
+										onPress={
+											selectedTab === 'Available'
+												? () => handleConfirmPickup(order.id)
+												: () => handleDeliveryOTP(order.id)
+										}
+										disabled={loadingPickup}
+										style={{
+											backgroundColor: loadingPickup ? '#9ca3af' : 'rgba(4, 63, 65, 1)',
+											paddingVertical: 16,
+											borderRadius: 12,
+											alignItems: 'center',
+											justifyContent: 'center',
+											shadowColor: '#10b981',
+											shadowOffset: { width: 0, height: 2 },
+											shadowOpacity: loadingPickup ? 0 : 0.2,
+											shadowRadius: 8,
+											elevation: loadingPickup ? 0 : 3,
+										}}
+									>
+										<Text
 											style={{
-												marginTop: 16,
-												paddingTop: 16,
-												borderTopWidth: 1,
-												borderTopColor: '#f1f5f9',
+												color: '#ffffff',
+												fontWeight: '700',
+												fontSize: 16,
+												letterSpacing: 0.5,
 											}}
 										>
-											{/* Items list */}
-											<View style={{ marginBottom: 16 }}>
-												<Text
-													style={{
-														fontSize: 14,
-														fontWeight: '600',
-														color: '#374151',
-														marginBottom: 8,
-													}}
-												>
-													Items
-												</Text>
-												{order.items.map((item, itemIndex) => (
-													<View
-														key={itemIndex}
-														style={{
-															flexDirection: 'row',
-															justifyContent: 'space-between',
-															alignItems: 'center',
-															paddingVertical: 8,
-															paddingHorizontal: 12,
-															backgroundColor: '#f8fafc',
-															borderRadius: 10,
-															marginBottom: 6,
-														}}
-													>
-														<View style={{ flex: 1 }}>
-															<Text
-																style={{
-																	fontSize: 14,
-																	fontWeight: '500',
-																	color: '#1e293b',
-																	marginBottom: 1,
-																}}
-															>
-																{item.name}
-															</Text>
-															<Text
-																style={{
-																	fontSize: 12,
-																	color: '#64748b',
-																}}
-															>
-																{item.weight} × {item.qty}
-															</Text>
-														</View>
-														<Text
-															style={{
-																fontSize: 10,
-																color: '#64748b',
-																backgroundColor: '#e2e8f0',
-																paddingHorizontal: 8,
-																paddingVertical: 4,
-																borderRadius: 6,
-															}}
-														>
-															{item.from}
-														</Text>
-													</View>
-												))}
-											</View>
-
-											{/* Delivery info */}
-											<View
-												style={{
-													backgroundColor: '#f8fafc',
-													padding: 14,
-													borderRadius: 12,
-													marginBottom: 16,
-												}}
-											>
-												<Text
-													style={{
-														fontSize: 14,
-														color: '#374151',
-														marginBottom: 6,
-													}}
-												>
-													<Text style={{ fontWeight: '600' }}>Delivery To: </Text>
-													{order.deliveryTo}
-												</Text>
-												<Text
-													style={{
-														fontSize: 20,
-														fontWeight: 'bold',
-														color: '#1e293b',
-													}}
-												>
-													₹{order.amount.toLocaleString()}
-													<Text
-														style={{
-															fontSize: 14,
-															fontWeight: '500',
-															marginLeft: 6,
-															color: order.paid ? '#059669' : '#dc2626',
-														}}
-													>
-														{order.paid ? ' (Paid)' : ' (Unpaid)'}
-													</Text>
-												</Text>
-											</View>
-
-											{/* Action buttons */}
-											<View
-												style={{
-													flexDirection: 'row',
-													gap: 10,
-												}}
-											>
-												<TouchableOpacity
-													onPress={
-														selectedTab === 'Available'
-															? () => handleConfirmPickup(order.id)
-															: () => handleDeliveryOTP(order.id)
-													}
-													disabled={loadingPickup}
-													style={{
-														flex: 1, // make it take equal space
-														backgroundColor: loadingPickup ? '#ccc' : '#007bff',
-														paddingVertical: 12,
-														borderRadius: 12,
-														alignItems: 'center',
-														justifyContent: 'center',
-													}}
-												>
-													<Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>
-														{selectedTab === 'Accepted'
-															? 'Deliver Item'
-															: loadingPickup
-																? 'Confirming...'
-																: 'Confirm Pickup'}
-													</Text>
-												</TouchableOpacity>
-
-												<TouchableOpacity
-													onPress={() => openStatusModal(order.id)}
-													style={{
-														flex: 1,
-														backgroundColor: '#ffffff',
-														borderWidth: 1.5,
-														borderColor: '#e2e8f0',
-														paddingVertical: 12,
-														borderRadius: 12,
-														alignItems: 'center',
-														justifyContent: 'center',
-													}}
-												>
-													<Text
-														style={{
-															color: '#374151',
-															fontWeight: 'bold',
-															textAlign: 'center',
-															fontSize: 14,
-														}}
-													>
-														Update Status
-													</Text>
-												</TouchableOpacity>
-											</View>
-										</View>
-									)}
+											{loadingPickup ? 'Confirming...' : 'Confirm Pickup'}
+										</Text>
+									</TouchableOpacity>
 								</View>
-							))}
+							)}
 						</View>
 					))
+				) : (
+					order && (
+						<View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+							{/* Header */}
+							<View style={{ padding: 20, alignItems: 'center' }}>
+								<Ionicons name="checkmark-circle" size={56} color="#059669" />
+								<Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginTop: 12 }}>
+									Pickup Confirmed
+								</Text>
+								<Text style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>
+									Order ID: {order.externalOrderId}
+								</Text>
+							</View>
+
+							{/* Order Details */}
+							<View
+								style={{
+									backgroundColor: '#fff',
+									marginHorizontal: 16,
+									borderRadius: 12,
+									padding: 16,
+									shadowColor: '#000',
+									shadowOpacity: 0.05,
+									shadowOffset: { width: 0, height: 1 },
+									shadowRadius: 4,
+									elevation: 2,
+								}}
+							>
+								<Text
+									style={{ fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 4 }}
+								>
+									PICKUP FROM
+								</Text>
+								<Text style={{ fontSize: 14, color: '#374151', marginBottom: 12 }}>
+									{order.sourceAddress.street}, {order.sourceAddress.city},{' '}
+									{order.sourceAddress.zip}
+								</Text>
+
+								<Text
+									style={{ fontSize: 12, fontWeight: '600', color: '#6b7280', marginBottom: 4 }}
+								>
+									DELIVER TO
+								</Text>
+								<Text style={{ fontSize: 14, color: '#374151', marginBottom: 12 }}>
+									{order.destinationAddress.street}, {order.destinationAddress.city},{' '}
+									{order.destinationAddress.zip}
+								</Text>
+
+								<Text style={{ fontSize: 14, color: '#374151', marginBottom: 4 }}>
+									Items: {order.numberOfItems}
+								</Text>
+
+								<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+									<Text style={{ fontSize: 22, fontWeight: 'bold', color: '#1e293b' }}>
+										₹{order.price}
+									</Text>
+									<View
+										style={{
+											backgroundColor: '#059669',
+											paddingHorizontal: 10,
+											paddingVertical: 4,
+											borderRadius: 16,
+											marginLeft: 12,
+										}}
+									>
+										<Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>PAID</Text>
+									</View>
+								</View>
+							</View>
+
+							{/* Customer Info */}
+							<View
+								style={{
+									backgroundColor: '#fff',
+									marginHorizontal: 16,
+									marginTop: 16,
+									borderRadius: 12,
+									padding: 16,
+									shadowColor: '#000',
+									shadowOpacity: 0.05,
+									shadowOffset: { width: 0, height: 1 },
+									shadowRadius: 4,
+									elevation: 2,
+									flexDirection: 'row',
+									justifyContent: 'space-between',
+									alignItems: 'center',
+								}}
+							>
+								<View>
+									<Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b' }}>
+										{order.customerDetails.name}
+									</Text>
+									<Text style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+										{order.customerDetails.phone}
+									</Text>
+								</View>
+								<TouchableOpacity
+									onPress={() => Linking.openURL(`tel:${order.customerDetails.phone}`)}
+									style={{
+										backgroundColor: '#0369a1',
+										paddingHorizontal: 14,
+										paddingVertical: 10,
+										borderRadius: 8,
+									}}
+								>
+									<Ionicons name="call" size={20} color="#fff" />
+								</TouchableOpacity>
+							</View>
+
+							{/* Action Button */}
+							<View style={{ marginTop: 'auto', padding: 16 }}>
+								<TouchableOpacity
+									onPress={() => handleDeliveryOTP(order.id)}
+									style={{
+										backgroundColor: '#059669',
+										paddingVertical: 16,
+										borderRadius: 12,
+										alignItems: 'center',
+									}}
+								>
+									<Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+										Enter Delivery OTP
+									</Text>
+								</TouchableOpacity>
+							</View>
+						</View>
+					)
 				)}
 			</ScrollView>
 			<Modal visible={otpModalVisible} transparent animationType="fade">
@@ -1259,83 +1451,9 @@ export default function OrdersScreen() {
 								<Ionicons name="close" size={20} color="#64748b" />
 							</TouchableOpacity>
 						</View>
-
-						{/* Status Options */}
-						<ScrollView showsVerticalScrollIndicator={false}>
-							{statusOptions.map((status, index) => (
-								<TouchableOpacity
-									key={status}
-									onPress={() => updateOrderStatus(status)}
-									style={{
-										flexDirection: 'row',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										paddingVertical: 16,
-										paddingHorizontal: 16,
-										marginBottom: 8,
-										backgroundColor: '#f8fafc',
-										borderRadius: 12,
-										borderWidth: 1,
-										borderColor: '#f1f5f9',
-									}}
-								>
-									<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-										<View
-											style={{
-												width: 12,
-												height: 12,
-												borderRadius: 6,
-												backgroundColor: getStatusStyle(status),
-												marginRight: 12,
-											}}
-										/>
-										<Text
-											style={{
-												fontSize: 16,
-												fontWeight: '500',
-												color: '#1e293b',
-											}}
-										>
-											{status}
-										</Text>
-									</View>
-									<Ionicons name="chevron-forward" size={16} color="#9ca3af" />
-								</TouchableOpacity>
-							))}
-						</ScrollView>
 					</View>
 				</View>
 			</Modal>
 		</SafeAreaView>
 	);
 }
-
-const getStatusStyle = (status: string) => {
-	switch (status) {
-		case 'Pickup Pending':
-			return '#fef3c7';
-		case 'Pickup Failed':
-			return '#fee2e2';
-		case 'Pickup Rescheduled':
-			return '#fed7aa';
-		case 'Delivered':
-			return '#dcfce7';
-		default:
-			return '#f3f4f6';
-	}
-};
-
-const getStatusTextColor = (status: string) => {
-	switch (status) {
-		case 'Pickup Pending':
-			return '#d97706';
-		case 'Pickup Failed':
-			return '#dc2626';
-		case 'Pickup Rescheduled':
-			return '#ea580c';
-		case 'Delivered':
-			return '#059669';
-		default:
-			return '#6b7280';
-	}
-};

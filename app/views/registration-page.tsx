@@ -25,7 +25,10 @@ export default function RegistrationPage() {
 	]);
 
 	React.useEffect(() => {
+		//console.log('Registration page');
 		const getVerificationStatus = async () => {
+			console.log('Registration page');
+
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
 			const URL = BACKEND_URL + '/api/auth/complete-verification';
 
@@ -39,22 +42,33 @@ export default function RegistrationPage() {
 						phoneNumber: `+91${phoneNum}`,
 					}),
 				});
+				console.log('Verification API called');
+
 				const data = await response.json();
 				//console.log('Verification status:', data);
+				console.log(data);
 
 				if (data?.success && data?.profileStatus) {
 					const status = data.profileStatus;
+					console.log('Registrations: ', data.token);
 					await AsyncStorage.setItem('auth_token', data.token);
 					const updatedStatus = [
-						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
-						{
-							name: 'Personal Documents',
-							isVerified: status.personalDocuments?.verified ?? false,
-						},
-						{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
-						{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
-						{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+						{ name: 'Personal Information', isVerified: true },
+						{ name: 'Personal Documents', isVerified: true },
+						{ name: 'Vehicle Details', isVerified: true },
+						{ name: 'Bank Account Details', isVerified: true },
+						{ name: 'Emergency Details', isVerified: true },
 					];
+					// const updatedStatus = [
+					// 	{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+					// 	{
+					// 		name: 'Personal Documents',
+					// 		isVerified: status.personalDocuments?.verified ?? false,
+					// 	},
+					// 	{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+					// 	{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+					// 	{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+					// ];
 
 					setVerificationData(updatedStatus);
 				}

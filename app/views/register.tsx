@@ -27,7 +27,7 @@ const RegisterScreen = () => {
 		const fetchDriverID = async () => {
 			const driverID = await AsyncStorage.getItem('driverID');
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
-			console.log('Registration: ' + driverID + phoneNum);
+			console.log('OTP Page: ' + driverID + phoneNum);
 		};
 		fetchDriverID();
 	}, []);
