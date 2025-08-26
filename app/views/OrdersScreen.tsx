@@ -21,8 +21,8 @@ const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
 interface Job {
 	id: string;
 	externalOrderId: string;
-	sourceAddress: string;
-	destinationAddress: string;
+	sourceAddress: Address;
+	destinationAddress: Address;
 	price: number;
 	createdAt: string; // can convert to Date object if needed
 }
@@ -55,55 +55,55 @@ export interface Order {
 }
 
 export default function OrdersScreen() {
-	const placeholderJobs: Job[] = [
-		{
-			id: 'job_001',
-			externalOrderId: 'EXT12345',
-			sourceAddress: '123 Main St, Springfield',
-			destinationAddress: '456 Elm St, Shelbyville',
-			price: 250,
-			createdAt: new Date('2025-08-25T10:00:00Z').toISOString(),
-		},
-		{
-			id: 'job_002',
-			externalOrderId: 'EXT12346',
-			sourceAddress: '789 Oak St, Springfield',
-			destinationAddress: '321 Pine St, Shelbyville',
-			price: 320,
-			createdAt: new Date('2025-08-25T11:30:00Z').toISOString(),
-		},
-		{
-			id: 'job_003',
-			externalOrderId: 'EXT12347',
-			sourceAddress: '555 Maple St, Springfield',
-			destinationAddress: '888 Birch St, Shelbyville',
-			price: 180,
-			createdAt: new Date('2025-08-25T12:15:00Z').toISOString(),
-		},
-		{
-			id: 'job_004',
-			externalOrderId: 'EXT12348',
-			sourceAddress: '101 Cedar St, Springfield',
-			destinationAddress: '202 Walnut St, Shelbyville',
-			price: 400,
-			createdAt: new Date('2025-08-25T13:45:00Z').toISOString(),
-		},
-		{
-			id: 'job_005',
-			externalOrderId: 'EXT12349',
-			sourceAddress: '303 Cherry St, Springfield',
-			destinationAddress: '404 Poplar St, Shelbyville',
-			price: 220,
-			createdAt: new Date('2025-08-25T14:30:00Z').toISOString(),
-		},
-	];
+	// const placeholderJobs: Job[] = [
+	// 	{
+	// 		id: 'job_001',
+	// 		externalOrderId: 'EXT12345',
+	// 		sourceAddress: '123 Main St, Springfield',
+	// 		destinationAddress: '456 Elm St, Shelbyville',
+	// 		price: 250,
+	// 		createdAt: new Date('2025-08-25T10:00:00Z').toISOString(),
+	// 	},
+	// 	{
+	// 		id: 'job_002',
+	// 		externalOrderId: 'EXT12346',
+	// 		sourceAddress: '789 Oak St, Springfield',
+	// 		destinationAddress: '321 Pine St, Shelbyville',
+	// 		price: 320,
+	// 		createdAt: new Date('2025-08-25T11:30:00Z').toISOString(),
+	// 	},
+	// 	{
+	// 		id: 'job_003',
+	// 		externalOrderId: 'EXT12347',
+	// 		sourceAddress: '555 Maple St, Springfield',
+	// 		destinationAddress: '888 Birch St, Shelbyville',
+	// 		price: 180,
+	// 		createdAt: new Date('2025-08-25T12:15:00Z').toISOString(),
+	// 	},
+	// 	{
+	// 		id: 'job_004',
+	// 		externalOrderId: 'EXT12348',
+	// 		sourceAddress: '101 Cedar St, Springfield',
+	// 		destinationAddress: '202 Walnut St, Shelbyville',
+	// 		price: 400,
+	// 		createdAt: new Date('2025-08-25T13:45:00Z').toISOString(),
+	// 	},
+	// 	{
+	// 		id: 'job_005',
+	// 		externalOrderId: 'EXT12349',
+	// 		sourceAddress: '303 Cherry St, Springfield',
+	// 		destinationAddress: '404 Poplar St, Shelbyville',
+	// 		price: 220,
+	// 		createdAt: new Date('2025-08-25T14:30:00Z').toISOString(),
+	// 	},
+	// ];
 	const [order, setOrder] = useState<Order>();
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 	const [selectedTab, setSelectedTab] = useState<'Available' | 'Accepted'>('Available');
 	const [showStatusModal, setShowStatusModal] = useState(false);
-	const [availOrders, setAvailOrders] = useState<Job[]>([]); //TODO Array of available orders from API on load
+	const [availOrders, setAvailOrders] = useState<any[]>([]); //TODO Array of available orders from API on load
 	const [loading, setLoading] = useState(false); // TODO
 	const [error, setError] = useState<string | null>(null);
 	const [currentOrders, setCurrentOrder] = useState<string[]>([]);
@@ -265,7 +265,7 @@ export default function OrdersScreen() {
 			// const data = await response.json();
 			// if (response.ok && data.success) {
 			// 	console.log('✅ OTP sent successfully:', data.message);
-			// 	setOtpModalVisible(true); // Open OTP modal
+			setOtpModalVisible(true); // Open OTP modal
 			// } else {
 			// 	console.error('❌ Failed to send OTP:', data.message);
 			// 	Alert.alert(
@@ -286,38 +286,43 @@ export default function OrdersScreen() {
 		// TODO
 		const URL = baseUrl + `/api/orders/driver/jobs/${deliveryOrder}/verify-delivery`;
 		setLoading(true);
-		// if (otp == '123456') {
-		// 	console.log('Delivery completed successfully');
-		// 	setOtpModalVisible(false); // Hide modal
-		// 	Alert.alert('Success', 'OTP verified successfully');
-		// } else {
-		// 	console.error('OTP verification failed');
-		// 	Alert.alert('Error', 'Invalid OTP. Please try again.');
-		// }
+		if (otp == '123456') {
+			console.log('Delivery completed successfully');
+			setOtpModalVisible(false);
+			setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
+			await AsyncStorage.removeItem('accepted_order');
+			setSelectedTab('Available');
+			Alert.alert('Success', 'OTP verified successfully');
+		} else {
+			console.error('OTP verification failed');
+			Alert.alert('Error', 'Invalid OTP. Please try again.');
+		}
 		try {
-			const response = await fetch(URL, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify({ otp }),
-			});
-			console.log(response);
-			console.log(token);
-			if (!response.ok) {
-				throw new Error(`HTTP error! Status: ${response.status}`);
-			}
-			const data = await response.json();
-			if (data.success) {
-				console.log('Delivery completed successfully:', data.message);
-				setOtpModalVisible(false); // Hide modal
-				Alert.alert('Success', 'OTP verified successfully');
-				setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
-			} else {
-				console.error('OTP verification failed:', data.message);
-				Alert.alert('Error', 'Invalid OTP. Please try again.');
-			}
+			// const response = await fetch(URL, {
+			// 	method: 'POST',
+			// 	headers: {
+			// 		'Content-Type': 'application/json',
+			// 		Authorization: `Bearer ${token}`,
+			// 	},
+			// 	body: JSON.stringify({ otp }),
+			// });
+			// console.log(response);
+			// console.log(token);
+			// if (!response.ok) {
+			// 	throw new Error(`HTTP error! Status: ${response.status}`);
+			// }
+			// const data = await response.json();
+			// if (data.success) {
+			// 	console.log('Delivery completed successfully:', data.message);
+			// 	setOtpModalVisible(false); // Hide modal
+			// 	Alert.alert('Success', 'OTP verified successfully');
+			// 	setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
+			// 	await AsyncStorage.removeItem('accepted_order');
+			// 	setSelectedTab('Available');
+			// } else {
+			// 	console.error('OTP verification failed:', data.message);
+			// 	Alert.alert('Error', 'Invalid OTP. Please try again.');
+			// }
 		} catch (error) {
 			console.error('Error verifying OTP:', error);
 			Alert.alert('Error', 'Something went wrong while verifying OTP.');
@@ -367,7 +372,7 @@ export default function OrdersScreen() {
 		}
 	};
 
-	const ordersData = placeholderJobs;
+	const ordersData = availOrders;
 	//const ordersData: Job[] = [];
 
 	return (
@@ -389,22 +394,12 @@ export default function OrdersScreen() {
 						flexDirection: 'row',
 						alignItems: 'center',
 						justifyContent: 'center',
-						marginBottom: 16,
+						marginBottom: 8,
 					}}
 				>
-					<View
-						style={{
-							backgroundColor: '#dbeafe',
-							padding: 8,
-							borderRadius: 12,
-							marginRight: 8,
-						}}
-					>
-						<Ionicons name="bag-outline" size={24} color="#2563eb" />
-					</View>
 					<Text
 						style={{
-							fontSize: 24,
+							fontSize: 28,
 							fontWeight: 'bold',
 							color: '#1e293b',
 						}}
@@ -415,15 +410,14 @@ export default function OrdersScreen() {
 
 				<View
 					style={{
-						flexDirection: 'row',
-						justifyContent: 'space-between',
-						alignItems: 'center',
+						alignItems: 'flex-end',
 					}}
 				>
 					{/* Order Type Dropdown - REPLACED TABS */}
-					<TouchableOpacity
+					{/* <TouchableOpacity
 						onPress={() => setDropdownVisible(true)}
 						style={{
+							display: selectedTab === 'Accepted' ? 'none' : 'none',
 							height: 44,
 							flexDirection: 'row',
 							alignItems: 'center',
@@ -457,7 +451,7 @@ export default function OrdersScreen() {
 							{selectedTab} Orders
 						</Text>
 						<Ionicons name="chevron-down" size={16} color="#64748b" />
-					</TouchableOpacity>
+					</TouchableOpacity> */}
 
 					<View
 						style={{
@@ -972,7 +966,11 @@ export default function OrdersScreen() {
 													lineHeight: 20,
 												}}
 											>
-												{order.sourceAddress}
+												{order.sourceAddress.street +
+													', ' +
+													order.sourceAddress.city +
+													'\n' +
+													order.sourceAddress.zip}
 											</Text>
 										</View>
 
@@ -997,7 +995,11 @@ export default function OrdersScreen() {
 													lineHeight: 20,
 												}}
 											>
-												{order.destinationAddress}
+												{order.destinationAddress.street +
+													', ' +
+													order.destinationAddress.city +
+													'\n' +
+													order.destinationAddress.zip}
 											</Text>
 										</View>
 
@@ -1090,9 +1092,9 @@ export default function OrdersScreen() {
 					))
 				) : (
 					order && (
-						<View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+						<View style={{ flex: 1, backgroundColor: '#f9fafb', paddingBottom: 20 }}>
 							{/* Header */}
-							<View style={{ padding: 20, alignItems: 'center' }}>
+							<View style={{ padding: 20, alignItems: 'center', marginBottom: 20 }}>
 								<Ionicons name="checkmark-circle" size={56} color="#059669" />
 								<Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginTop: 12 }}>
 									Pickup Confirmed
@@ -1107,6 +1109,7 @@ export default function OrdersScreen() {
 								style={{
 									backgroundColor: '#fff',
 									marginHorizontal: 16,
+									marginBottom: 20, // Increased spacing
 									borderRadius: 12,
 									padding: 16,
 									shadowColor: '#000',
@@ -1163,7 +1166,7 @@ export default function OrdersScreen() {
 								style={{
 									backgroundColor: '#fff',
 									marginHorizontal: 16,
-									marginTop: 16,
+									marginBottom: 20, // Increased spacing
 									borderRadius: 12,
 									padding: 16,
 									shadowColor: '#000',
