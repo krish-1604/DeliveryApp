@@ -56,6 +56,7 @@ const Input = ({
 				style={{ fontSize: 16, lineHeight: 20 }}
 				className={`${className} w-full h-12 text-lg outline-secondary border-primary border px-5 py-1 mt-2 rounded-lg`}
 				placeholder={placeholder}
+				placeholderTextColor="#374151"
 				value={value}
 				onChange={handleChange}
 				keyboardType={keyboardType}

@@ -12,9 +12,11 @@ import {
 	TextInput,
 	Linking,
 	ActivityIndicator,
+	RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 
 const { width } = Dimensions.get('window');
 const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
@@ -107,6 +109,7 @@ export default function OrdersScreen() {
 	const [availOrders, setAvailOrders] = useState<any[]>([]); //TODO Array of available orders from API on load
 	const [loading, setLoading] = useState(true); // TODO
 	const [error, setError] = useState<string | null>(null);
+	const [refreshing, setRefreshing] = useState(false);
 	const [currentOrders, setCurrentOrder] = useState<string[]>([]);
 	const [token, setToken] = useState<string | null>(null);
 	const [isAvailable, setIsAvailable] = useState(false);
@@ -115,6 +118,11 @@ export default function OrdersScreen() {
 
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
+	};
+	const onRefresh = async () => {
+		setRefreshing(true);
+		await fetchPendingJobs();
+		setRefreshing(false);
 	};
 	const fetchPendingJobs = async () => {
 		setLoading(true);
@@ -333,6 +341,8 @@ export default function OrdersScreen() {
 				setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
 				await AsyncStorage.removeItem('accepted_order');
 				setSelectedTab('Available');
+				setIsAvailable(true);
+				await AsyncStorage.setItem('availability', JSON.stringify(true));
 			} else {
 				console.error('OTP verification failed:', data.message);
 				Alert.alert('Error', 'Invalid OTP. Please try again.');
@@ -392,23 +402,27 @@ export default function OrdersScreen() {
 	return (
 		<SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
 			<StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-
 			{/* Clean Header */}
 			<View
 				style={{
 					backgroundColor: '#f8fafc',
-					paddingHorizontal: 20,
-					paddingVertical: 16,
+					paddingHorizontal: 16,
+					paddingVertical: 8,
 					borderBottomWidth: 1,
-					borderBottomColor: '#f1f5f9',
+					borderBottomColor: '#d8d8d8ff',
+					shadowColor: Colors.black,
+					shadowOffset: { width: 0, height: 2 },
+					shadowOpacity: 0.04,
+					shadowRadius: 8,
 				}}
 			>
 				<View
 					style={{
 						flexDirection: 'row',
 						alignItems: 'center',
-						justifyContent: 'center',
+						justifyContent: 'space-between',
 						marginBottom: 8,
+						marginLeft: 20,
 					}}
 				>
 					<Text
@@ -420,136 +434,95 @@ export default function OrdersScreen() {
 					>
 						Orders
 					</Text>
-				</View>
-
-				<View
-					style={{
-						alignItems: 'flex-end',
-					}}
-				>
-					{/* Order Type Dropdown - REPLACED TABS */}
-					{/* <TouchableOpacity
-						onPress={() => setDropdownVisible(true)}
-						style={{
-							display: selectedTab === 'Accepted' ? 'none' : 'none',
-							height: 44,
-							flexDirection: 'row',
-							alignItems: 'center',
-							backgroundColor: '#ffffff',
-							borderRadius: 12,
-							paddingHorizontal: 16,
-							paddingVertical: 12,
-							borderWidth: 1,
-							borderColor: '#e2e8f0',
-							shadowColor: '#000',
-							shadowOffset: { width: 0, height: 1 },
-							shadowOpacity: 0.05,
-							shadowRadius: 2,
-							elevation: 1,
-						}}
-					>
-						<Ionicons
-							name={selectedTab === 'Accepted' ? 'checkmark-circle-outline' : 'time-outline'}
-							size={18}
-							color="#2563eb"
-							style={{ marginRight: 8 }}
-						/>
-						<Text
-							style={{
-								fontSize: 16,
-								fontWeight: '600',
-								color: '#1e293b',
-								marginRight: 8,
-							}}
-						>
-							{selectedTab} Orders
-						</Text>
-						<Ionicons name="chevron-down" size={16} color="#64748b" />
-					</TouchableOpacity> */}
 
 					<View
 						style={{
-							display: selectedTab === 'Accepted' ? 'none' : 'flex',
-							flexDirection: 'row',
-							alignItems: 'stretch',
-							backgroundColor: '#ffffff',
-							borderRadius: 12,
-							padding: 4,
-							borderWidth: 1,
-							borderColor: '#e2e8f0',
-							height: 44, // Set a fixed height matching the row's height
+							alignItems: 'flex-end',
 						}}
 					>
-						<TouchableOpacity
-							onPress={() => handleAvailabilityChange(true)}
+						<View
 							style={{
+								display: selectedTab === 'Accepted' ? 'none' : 'flex',
 								flexDirection: 'row',
-								alignItems: 'center',
-								paddingHorizontal: 12,
-								paddingVertical: 6,
-								borderRadius: 8,
-								backgroundColor: isAvailable ? '#dcfce7' : 'transparent',
-								//flex: 1,
-								height: '100%',
+								alignItems: 'stretch',
+								backgroundColor: '#ffffff',
+								borderRadius: 12,
+								padding: 4,
+								borderWidth: 1,
+								borderColor: '#e2e8f0',
+								height: 44, // Set a fixed height matching the row's height
 							}}
 						>
-							<View
+							<TouchableOpacity
+								onPress={() => handleAvailabilityChange(true)}
 								style={{
-									width: 8,
-									height: 8,
-									borderRadius: 4,
-									backgroundColor: isAvailable ? '#16a34a' : '#d1d5db',
-									marginRight: 6,
-								}}
-							/>
-							<Text
-								style={{
-									fontSize: 12,
-									fontWeight: '600',
-									color: isAvailable ? '#166534' : '#64748b',
+									flexDirection: 'row',
+									alignItems: 'center',
+									paddingHorizontal: 12,
+									paddingVertical: 6,
+									borderRadius: 8,
+									backgroundColor: isAvailable ? '#dcfce7' : 'transparent',
+									//flex: 1,
+									height: '100%',
 								}}
 							>
-								Online
-							</Text>
-						</TouchableOpacity>
+								<View
+									style={{
+										width: 8,
+										height: 8,
+										borderRadius: 4,
+										backgroundColor: isAvailable ? '#16a34a' : '#d1d5db',
+										marginRight: 6,
+									}}
+								/>
+								<Text
+									style={{
+										fontSize: 12,
+										fontWeight: '600',
+										color: isAvailable ? '#166534' : '#64748b',
+									}}
+								>
+									Online
+								</Text>
+							</TouchableOpacity>
 
-						<TouchableOpacity
-							onPress={() => handleAvailabilityChange(false)}
-							style={{
-								flexDirection: 'row',
-								alignItems: 'center',
-								paddingHorizontal: 12,
-								paddingVertical: 6,
-								borderRadius: 8,
-								backgroundColor: !isAvailable ? '#fee2e2' : 'transparent',
-								//flex: 1,
-								height: '100%',
-							}}
-						>
-							<View
+							<TouchableOpacity
+								onPress={() => handleAvailabilityChange(false)}
 								style={{
-									width: 8,
-									height: 8,
-									borderRadius: 4,
-									backgroundColor: !isAvailable ? '#dc2626' : '#d1d5db',
-									marginRight: 6,
-								}}
-							/>
-							<Text
-								style={{
-									fontSize: 12,
-									fontWeight: '600',
-									color: !isAvailable ? '#991b1b' : '#64748b',
+									flexDirection: 'row',
+									alignItems: 'center',
+									paddingHorizontal: 12,
+									paddingVertical: 6,
+									borderRadius: 8,
+									backgroundColor: !isAvailable ? '#fee2e2' : 'transparent',
+									//flex: 1,
+									height: '100%',
 								}}
 							>
-								Offline
-							</Text>
-						</TouchableOpacity>
+								<View
+									style={{
+										width: 8,
+										height: 8,
+										borderRadius: 4,
+										backgroundColor: !isAvailable ? '#dc2626' : '#d1d5db',
+										marginRight: 6,
+									}}
+								/>
+								<Text
+									style={{
+										fontSize: 12,
+										fontWeight: '600',
+										color: !isAvailable ? '#991b1b' : '#64748b',
+									}}
+								>
+									Offline
+								</Text>
+							</TouchableOpacity>
+						</View>
 					</View>
 				</View>
 			</View>
-
-			{/* Accepted vs Available orders selector */}
+			{/* Waste Modal */}
 			<Modal
 				visible={dropdownVisible}
 				transparent
@@ -701,6 +674,14 @@ export default function OrdersScreen() {
 					style={{ flex: 1, backgroundColor: '#f8fafc' }}
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, paddingBottom: 80 }}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={onRefresh}
+							colors={['#059669']}
+							tintColor="#059669"
+						/>
+					}
 				>
 					{!order && (availOrders.length == 0 || !isAvailable) ? (
 						<View
