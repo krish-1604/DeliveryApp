@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import '../global.css';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView, ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import AadhaarCardDetails from './views/AadhaarCardDetails';
@@ -24,27 +25,39 @@ import DocumentsPage from './views/DocumentsPage';
 import Splash from './views/splash';
 
 const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 function MainTabs() {
 	return (
 		<Tab.Navigator
 			screenOptions={({ route }) => ({
-				headerShown: false,
-				tabBarActiveTintColor: '#FAA41A',
+				tabBarShowLabel: true,
+				tabBarActiveTintColor: '#faa41aff',
 				tabBarInactiveTintColor: 'gray',
-				tabBarIcon: ({ color, size }) => {
+				swipeEnabled: true,
+				animationEnabled: true,
+				tabBarIndicatorStyle: { backgroundColor: '#fff' },
+				tabBarStyle: {
+					backgroundColor: 'white',
+					paddingBottom: 12,
+					paddingTop: 4,
+
+					borderTopWidth: 0.5,
+					borderTopColor: '#e0e0e0',
+				},
+				tabBarIcon: ({ color }) => {
 					let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
 					if (route.name === 'Orders') iconName = 'bag';
 					else if (route.name === 'Account') iconName = 'person';
 
-					return <Ionicons name={iconName} size={size} color={color} />;
+					return <Ionicons name={iconName} size={22} color={color} />;
 				},
 			})}
+			tabBarPosition="bottom"
 		>
-			<Tab.Screen name="Orders" component={OrdersScreen} />
-			<Tab.Screen name="Account" component={AccountPage} />
+			<Tab.Screen name="Orders" component={OrdersScreen} options={{ tabBarLabel: 'Orders' }} />
+			<Tab.Screen name="Account" component={AccountPage} options={{ tabBarLabel: 'Account' }} />
 		</Tab.Navigator>
 	);
 }
@@ -88,7 +101,7 @@ export default function RootLayout() {
 
 	if (!initialRoute) {
 		return (
-			<SafeAreaView
+			<SafeAreaProvider
 				style={{
 					flex: 1,
 					justifyContent: 'center',
@@ -97,15 +110,15 @@ export default function RootLayout() {
 				}}
 			>
 				<ActivityIndicator size="large" color="#FAA41A" />
-			</SafeAreaView>
+			</SafeAreaProvider>
 		);
 	}
 
-	const isAndroid = Platform.OS === 'android';
-	const Container = isAndroid ? SafeAreaView : View;
+	// const isAndroid = Platform.OS === 'android';
+	// const Container = isAndroid ? SafeAreaView : View;
 
 	return (
-		<Container style={{ flex: 1, backgroundColor: 'white' }}>
+		<SafeAreaProvider style={{ flex: 1, backgroundColor: 'white' }}>
 			<Stack.Navigator
 				initialRouteName={initialRoute}
 				screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}
@@ -127,6 +140,6 @@ export default function RootLayout() {
 				<Stack.Screen name="MainTabs" component={MainTabs} />
 				<Stack.Screen name="Orders" component={OrdersScreen} />
 			</Stack.Navigator>
-		</Container>
+		</SafeAreaProvider>
 	);
 }

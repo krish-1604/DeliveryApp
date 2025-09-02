@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from 'react-native/Libraries/NewAppScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
@@ -100,6 +101,7 @@ export default function OrdersScreen() {
 	// 		createdAt: new Date('2025-08-25T14:30:00Z').toISOString(),
 	// 	},
 	// ];
+	const insets = useSafeAreaInsets();
 	const [order, setOrder] = useState<Order>();
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
@@ -149,12 +151,14 @@ export default function OrdersScreen() {
 			}
 
 			if (data.success) {
-				console.log(data);
-				setAvailOrders(data.jobs);
+				setAvailOrders(data.jobs || []); // <-- empty array if API returns 0 jobs
+			} else {
+				setAvailOrders([]); // <-- ensure state is empty if success is false
 			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Unknown error');
-			console.log('error');
+			console.log('error', err);
+			setAvailOrders([]); // <-- clear state on error
 		} finally {
 			setLoading(false);
 			console.log('Orders finished loading');
@@ -341,6 +345,7 @@ export default function OrdersScreen() {
 				setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
 				await AsyncStorage.removeItem('accepted_order');
 				setSelectedTab('Available');
+				onRefresh();
 				setIsAvailable(true);
 				await AsyncStorage.setItem('availability', JSON.stringify(true));
 			} else {
@@ -400,7 +405,14 @@ export default function OrdersScreen() {
 	//const ordersData: Job[] = [];
 
 	return (
-		<SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+		<View
+			style={{
+				flex: 1,
+				backgroundColor: '#f8fafc',
+				paddingTop: insets.top,
+				paddingBottom: insets.bottom,
+			}}
+		>
 			<StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
 			{/* Clean Header */}
 			<View
@@ -1064,7 +1076,7 @@ export default function OrdersScreen() {
 											}
 											disabled={loadingPickup}
 											style={{
-												backgroundColor: loadingPickup ? '#9ca3af' : 'rgba(4, 63, 65, 1)',
+												backgroundColor: loadingPickup ? '#9ca3af' : 'rgba(0, 88, 74, 1)',
 												paddingVertical: 16,
 												borderRadius: 12,
 												alignItems: 'center',
@@ -1112,7 +1124,7 @@ export default function OrdersScreen() {
 									style={{
 										backgroundColor: '#fff',
 										marginHorizontal: 16,
-										marginBottom: 20, // Increased spacing
+										marginBottom: 20,
 										borderRadius: 12,
 										padding: 16,
 										shadowColor: '#000',
@@ -1164,12 +1176,11 @@ export default function OrdersScreen() {
 									</View>
 								</View>
 
-								{/* Customer Info */}
 								<View
 									style={{
 										backgroundColor: '#fff',
 										marginHorizontal: 16,
-										marginBottom: 20, // Increased spacing
+										marginBottom: 20,
 										borderRadius: 12,
 										padding: 16,
 										shadowColor: '#000',
@@ -1190,8 +1201,17 @@ export default function OrdersScreen() {
 											{order.customerDetails.phone}
 										</Text>
 									</View>
+
 									<TouchableOpacity
-										onPress={() => Linking.openURL(`tel:${order.customerDetails.phone}`)}
+										onPress={async () => {
+											const phoneNumber = `tel:${order.customerDetails.phone}`;
+											const supported = await Linking.canOpenURL(phoneNumber);
+											if (supported) {
+												await Linking.openURL(phoneNumber); // Opens the dialer
+											} else {
+												Alert.alert('Error', 'This device does not support calling.');
+											}
+										}}
 										style={{
 											backgroundColor: '#0369a1',
 											paddingHorizontal: 14,
@@ -1208,7 +1228,7 @@ export default function OrdersScreen() {
 									<TouchableOpacity
 										onPress={() => handleDeliveryOTP(order.id)}
 										style={{
-											backgroundColor: '#059669',
+											backgroundColor: 'rgba(0, 88, 74, 1)',
 											paddingVertical: 16,
 											borderRadius: 12,
 											alignItems: 'center',
@@ -1224,6 +1244,7 @@ export default function OrdersScreen() {
 					)}
 				</ScrollView>
 			)}
+			{/* Useful OTP Modal */}
 			<Modal visible={otpModalVisible} transparent animationType="fade">
 				<View
 					style={{
@@ -1253,7 +1274,7 @@ export default function OrdersScreen() {
 					>
 						{/* Header with Icon */}
 						<View style={{ alignItems: 'center', marginBottom: 24 }}>
-							<View
+							{/* <View
 								style={{
 									width: 60,
 									height: 60,
@@ -1265,7 +1286,7 @@ export default function OrdersScreen() {
 								}}
 							>
 								<Ionicons name="shield-checkmark" size={28} color="#0ea5e9" />
-							</View>
+							</View> */}
 							<Text
 								style={{
 									fontSize: 22,
@@ -1404,7 +1425,7 @@ export default function OrdersScreen() {
 					</View>
 				</View>
 			</Modal>
-			{/* Status Selection Modal */}
+			{/* Waste Status Selection Modal */}
 			<Modal
 				animationType="slide"
 				transparent={true}
@@ -1461,6 +1482,6 @@ export default function OrdersScreen() {
 					</View>
 				</View>
 			</Modal>
-		</SafeAreaView>
+		</View>
 	);
 }
