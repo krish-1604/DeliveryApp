@@ -85,6 +85,7 @@ export type RootStackParamList = {
 	'Terms and Conditions': undefined;
 	'Privacy Policy': undefined;
 	'Ask For Leave': undefined;
+	History: undefined;
 };
 
 export type NavigationProp<T extends keyof RootStackParamList> = StackNavigationProp<

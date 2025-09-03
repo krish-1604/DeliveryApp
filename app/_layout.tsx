@@ -23,6 +23,8 @@ import Map from './views/MapGoBrrrrrrrrrrr';
 import PersonalInformationForm from './views/PersonalInformation';
 import DocumentsPage from './views/DocumentsPage';
 import Splash from './views/splash';
+import HistoryScreen from './views/OrderHistory';
+import PlaceholderScreen from './views/PlaceholderScreen';
 
 const Stack = createStackNavigator();
 const Tab = createMaterialTopTabNavigator();
@@ -135,10 +137,32 @@ export default function RootLayout() {
 				<Stack.Screen name="Emergency" component={EmergencyDetailsPage} />
 				<Stack.Screen name="Aadhaar" component={AadhaarCardDetails} />
 				<Stack.Screen name="LeaveSubmitted" component={LeaveSubmittedPage} />
-				<Stack.Screen name="Ask For Leave" component={LeavePage} />
+				{/* <Stack.Screen name="Ask For Leave" component={LeavePage} /> */}
 				<Stack.Screen name="Map" component={Map} />
 				<Stack.Screen name="MainTabs" component={MainTabs} />
 				<Stack.Screen name="Orders" component={OrdersScreen} />
+				<Stack.Screen name="History" component={HistoryScreen} />
+				<Stack.Screen name="Terms and Conditions" options={{ title: 'Terms & Conditions' }}>
+					{() => <PlaceholderScreen title="Terms & Conditions" />}
+				</Stack.Screen>
+				<Stack.Screen name="Privacy Policy" options={{ title: 'Privacy Policy' }}>
+					{() => <PlaceholderScreen title="Privacy Policy" />}
+				</Stack.Screen>
+				<Stack.Screen name="FAQ" options={{ title: 'About Us' }}>
+					{() => <PlaceholderScreen title="About Us" />}
+				</Stack.Screen>
+				<Stack.Screen name="Support" options={{ title: 'Support' }}>
+					{() => <PlaceholderScreen title="Support" />}
+				</Stack.Screen>
+				<Stack.Screen name="Allotted Area" options={{ title: 'Allotted Area' }}>
+					{() => <PlaceholderScreen title="Allotted Area" />}
+				</Stack.Screen>
+				<Stack.Screen name="Ask For Leave" options={{ title: 'Ask For Leave' }}>
+					{() => <PlaceholderScreen title="Ask For Leave" />}
+				</Stack.Screen>
+				<Stack.Screen name="Placeholder" options={{ title: 'Coming Soon' }}>
+					{() => <PlaceholderScreen title="Coming Soon" />}
+				</Stack.Screen>
 			</Stack.Navigator>
 		</SafeAreaProvider>
 	);

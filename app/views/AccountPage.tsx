@@ -1,25 +1,84 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../utils/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+interface DriverMinimal {
+	name: string;
+	phoneNumber: string;
+	profilePicture: string | null;
+}
+
 export default function AccountPage() {
+	const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+	const [phoneNum, setPhoneNum] = useState('');
+	const [driverDetails, setDriverDetails] = useState<DriverMinimal>();
 	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<NavigationProp<'Account'>>();
+	const fetchDriverDetails = async () => {
+		try {
+			const driverID = await AsyncStorage.getItem('driverId');
+			// const token = await AsyncStorage.getItem('auth_token');
+			// console.log(token);
+
+			if (!driverID) {
+				Alert.alert('Error', 'Driver ID not found.');
+				navigation.reset({
+					index: 0,
+					routes: [{ name: 'Phone' }],
+				});
+				return;
+			}
+			const url = `${baseUrl}/api/drivers/${driverID}`;
+			const response = await fetch(url, { method: 'GET' });
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				Alert.alert('Error', `Failed to fetch driver details: ${response.status} ${errorText}`);
+				return;
+			}
+
+			const data = await response.json();
+			setDriverDetails({
+				name: `${data.driver.firstName} ${data.driver.lastName}`,
+				phoneNumber: data.driver.phoneNumber,
+				profilePicture: data.driver.profilePicture,
+			});
+			console.log('Driver details:', data);
+		} catch (error) {
+			console.error('Fetch driver details error:', error);
+			Alert.alert('Error', 'Unable to fetch driver details. Please try again.');
+		}
+	};
+	useEffect(() => {
+		fetchDriverDetails();
+	}, []);
 
 	const handleMenuPress = async (title: string) => {
 		switch (title) {
-			case 'Edit Profile':
+			case 'History':
+				navigation.navigate('History');
+				break;
 			case 'Allotted Area':
+				navigation.navigate('Allotted Area');
+				break;
 			case 'Support':
+				navigation.navigate('Support');
+				break;
 			case 'FAQ':
+				navigation.navigate('FAQ');
+				break;
 			case 'Terms and Conditions':
+				navigation.navigate('Terms and Conditions');
+				break;
 			case 'Privacy Policy':
+				navigation.navigate('Privacy Policy');
+				break;
 			case 'Ask For Leave':
-				navigation.navigate(title);
+				navigation.navigate('Ask For Leave');
 				break;
 			case 'Log Out':
 				try {
@@ -36,7 +95,7 @@ export default function AccountPage() {
 	};
 
 	const menuItems = [
-		{ title: 'Edit Profile', icon: 'person-outline' },
+		{ title: 'History', icon: 'receipt-outline' },
 		{ title: 'Allotted Area', icon: 'location-outline' },
 		{ title: 'Support', icon: 'headset-outline' },
 		{ title: 'FAQ', icon: 'help-circle-outline' },
@@ -93,20 +152,37 @@ export default function AccountPage() {
 						elevation: 2,
 					}}
 				>
-					<Image
-						source={{
-							uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBIcthqV0b6PKEn8GV0mX8nw8dpbQOkKOUWg&s',
-						}}
+					{/* Avatar */}
+					<View
 						style={{
 							width: 64,
 							height: 64,
 							borderRadius: 32,
 							marginRight: 16,
 							borderWidth: 2,
-							borderColor: '#e0e7ff',
+							borderColor: '#007836ff',
+							alignItems: 'center',
+							justifyContent: 'center',
+							backgroundColor: '#f8f8f8ff',
+							overflow: 'hidden',
 						}}
-					/>
-					<View style={{ flex: 1 }}>
+					>
+						{driverDetails?.profilePicture ? (
+							<Image
+								source={{ uri: driverDetails.profilePicture }}
+								style={{
+									width: 56,
+									height: 56,
+									borderRadius: 28,
+								}}
+							/>
+						) : (
+							<Ionicons name="person-outline" size={40} color="#6f7b8bff" />
+						)}
+					</View>
+
+					{/* Details */}
+					<View style={{ flex: 1, justifyContent: 'center' }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
 							<Ionicons
 								name="person-outline"
@@ -115,12 +191,12 @@ export default function AccountPage() {
 								style={{ marginRight: 6 }}
 							/>
 							<Text style={{ color: '#1e293b', fontSize: 16, fontWeight: '600' }}>
-								IEEE Computer Society
+								{driverDetails?.name}
 							</Text>
 						</View>
 						<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 							<Ionicons name="call-outline" size={18} color="#64748b" style={{ marginRight: 6 }} />
-							<Text style={{ color: '#374151', fontSize: 15 }}>+91 9999988888</Text>
+							<Text style={{ color: '#374151', fontSize: 15 }}>{driverDetails?.phoneNumber}</Text>
 						</View>
 					</View>
 				</View>
