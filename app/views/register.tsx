@@ -5,7 +5,7 @@ import { Input } from '@/app/components/input';
 import { Body } from '@/app/components/typography';
 import { theme } from '@/app/constants/theme';
 import { useEffect, useState } from 'react';
-import { Text, View, Alert } from 'react-native';
+import { Text, View, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@/app/utils/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -69,39 +69,48 @@ const RegisterScreen = () => {
 			className="relative flex w-screen bg-white h-screen overflow-hidden"
 			style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
 		>
-			<Background />
-			<View className="w-full h-2/6 px-5 flex gap-4 justify-end mt-10">
-				<Input
-					type="number"
-					limit={10}
-					label="Enter Mobile Number"
-					placeholder="e.g. 9999988888"
-					value={number}
-					keyboardType="numeric"
-					onChange={setNumber}
-					className="w-full h-12 outline-secondary border-primary border px-5 mt-2 rounded-lg"
-				/>
-
-				<CheckBox
-					checked={checked}
-					onClick={handleCheckboxPress}
-					boxOutlineColor={theme.colors.primary}
-					checkmarkColor="#fff"
-				>
-					<Text className="text-slate-900 ml-2">
-						By signing up I agree to the{' '}
-						<Text className="text-primary font-semibold">Terms of use</Text> and{' '}
-						<Text className="text-primary font-semibold">Privacy Policy</Text>.
-					</Text>
-				</CheckBox>
-
-				<ButtonHighlight onPress={handlePress} className="w-full h-12 mt-4" disabled={loading}>
-					<Body
-						className="text-center !text-white !font-semibold"
-						text={loading ? 'Sending...' : 'Send OTP'}
+			<KeyboardAvoidingView
+				behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+				style={{ flex: 1 }}
+			>
+				<Background />
+				<View className="w-full h-2/6 px-5 flex gap-4 justify-end mt-10">
+					<Input
+						type="number"
+						limit={10}
+						label="Enter Mobile Number"
+						placeholder="e.g. 9999988888"
+						value={number}
+						keyboardType="numeric"
+						onChange={setNumber}
+						className="w-full h-12 outline-secondary border-primary border px-5 mt-2 rounded-lg"
 					/>
-				</ButtonHighlight>
-			</View>
+
+					<CheckBox
+						checked={checked}
+						onClick={handleCheckboxPress}
+						boxOutlineColor={theme.colors.primary}
+						checkmarkColor="#fff"
+					>
+						<Text className="text-slate-900 ml-2">
+							By signing up I agree to the{' '}
+							<Text className="text-primary font-semibold">Terms of use</Text> and{' '}
+							<Text className="text-primary font-semibold">Privacy Policy</Text>.
+						</Text>
+					</CheckBox>
+
+					<ButtonHighlight
+						onPress={handlePress}
+						className="w-full h-12 mt-4 mb-4"
+						disabled={loading}
+					>
+						<Body
+							className="text-center !text-white !font-semibold"
+							text={loading ? 'Sending...' : 'Send OTP'}
+						/>
+					</ButtonHighlight>
+				</View>
+			</KeyboardAvoidingView>
 		</View>
 	);
 };

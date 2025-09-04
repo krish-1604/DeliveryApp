@@ -14,6 +14,7 @@ export interface Address {
 export interface OrderHistory {
 	id: string;
 	orderId: string;
+	externalOrderId: string;
 	price: number;
 	driverId: string;
 	finalStatus: 'DELIVERED' | 'ACCEPTED' | 'CANCELLED' | 'PENDING';
@@ -169,7 +170,7 @@ const HistoryScreen = () => {
 											color: '#1e293b',
 										}}
 									>
-										Order ID: {order.orderId}
+										Order ID: {order.externalOrderId}
 									</Text>
 									<Text
 										style={{
