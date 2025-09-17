@@ -28,7 +28,7 @@ interface Job {
 	sourceAddress: Address;
 	destinationAddress: Address;
 	price: number;
-	createdAt: string; // can convert to Date object if needed
+	createdAt: string;
 }
 
 export interface Address {
@@ -102,7 +102,7 @@ export default function OrdersScreen() {
 	// 	},
 	// ];
 	const insets = useSafeAreaInsets();
-	const [order, setOrder] = useState<Order>();
+	const [order, setOrder] = useState<Order | null>();
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -309,20 +309,9 @@ export default function OrdersScreen() {
 	}
 
 	async function handleVerifyDeliveryOTP() {
-		// TODO
 		const URL = baseUrl + `/api/orders/driver/jobs/${deliveryOrder}/verify-delivery`;
 		setLoading(true);
-		// if (otp == '123456') {
-		// 	console.log('Delivery completed successfully');
-		// 	setOtpModalVisible(false);
-		// 	setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
-		// 	await AsyncStorage.removeItem('accepted_order');
-		// 	setSelectedTab('Available');
-		// 	Alert.alert('Success', 'OTP verified successfully');
-		// } else {
-		// 	console.error('OTP verification failed');
-		// 	Alert.alert('Error', 'Invalid OTP. Please try again.');
-		// }
+
 		try {
 			const response = await fetch(URL, {
 				method: 'POST',
@@ -342,12 +331,19 @@ export default function OrdersScreen() {
 				console.log('Delivery completed successfully:', data.message);
 				setOtpModalVisible(false);
 				Alert.alert('Success', 'OTP verified successfully');
+
+				// Clear the current order state
 				setCurrentOrder((prev) => prev.filter((id) => id !== deliveryOrder));
+				setOrder(null); // Add this line to clear the order
 				await AsyncStorage.removeItem('accepted_order');
+
+				// Switch to Available tab and refresh
 				setSelectedTab('Available');
-				onRefresh();
 				setIsAvailable(true);
 				await AsyncStorage.setItem('availability', JSON.stringify(true));
+
+				// Force re-render by refreshing orders
+				await onRefresh();
 			} else {
 				console.error('OTP verification failed:', data.message);
 				Alert.alert('Error', 'Invalid OTP. Please try again.');
