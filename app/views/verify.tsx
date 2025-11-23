@@ -35,44 +35,71 @@ const VerifyScreen = () => {
 	}, []);
 
 	const handlePress = async () => {
-	const otpValues = Object.values(otp).join('');
-	if (otpValues.length !== 6 || !/^\d{6}$/.test(otpValues)) {
-		Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP');
-		return;
-	}
-
-	if (!phoneNumber) {
-		Alert.alert('Error', 'Phone number not found');
-		return;
-	}
-	// if (otpValues === '123456') {
-	// 	await AsyncStorage.setItem('driverId', 'bypass-driver-id');
-	// 	navigation.navigate('PersonalInformation');
-	// 	return;
-	// }
-	try {
-		setVerifying(true);
-		const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
-		const api = new DriverAPI();
-		const response = await api.verifyOTP(formatted, otpValues);
-
-		if (response.success && response.data?.driverId) {
-			await AsyncStorage.setItem('driverId', response.data.driverId);
-			navigation.navigate('PersonalInformation');
-		} else {
-			Alert.alert('Verification Failed', response.message || 'Invalid OTP');
+		const otpValues = Object.values(otp).join('');
+		if (otpValues.length !== 6 || !/^\d{6}$/.test(otpValues)) {
+			Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP');
+			return;
 		}
-	} catch (err: unknown) {
-	if ((err as AxiosError)?.response?.status === 400) {
-		Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
-	} else {
-		Alert.alert('Error', 'Something went wrong while verifying OTP');
-	}
-}
- finally {
-		setVerifying(false);
-	}
-};
+
+		if (!phoneNumber) {
+			Alert.alert('Error', 'Phone number not found');
+			return;
+		}
+
+		try {
+			setVerifying(true);
+			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+			const api = new DriverAPI();
+			const response = await api.verifyOTP(formatted, otpValues);
+			//console.log('Verification response:', response);
+			if (response.success) {
+				//console.log(response.driver.id);
+				await AsyncStorage.setItem('driverId', response.driver.id);
+				if (response.userExists && response.isCompletelyVerified) {
+					await AsyncStorage.multiSet([
+						['auth_token', response.token],
+						['isVerified', 'true'],
+						[
+							'userProfile',
+							JSON.stringify({
+								firstName: response.driver.firstName,
+								lastName: response.driver.lastName,
+								phoneNumber: response.driver.phoneNumber,
+								profilePicture: response.driver.profilePicture,
+							}),
+						],
+					]);
+					navigation.navigate('MainTabs');
+				} else if (response.userExists && !response.isCompletelyVerified) {
+					await AsyncStorage.multiSet([
+						[
+							'userProfile',
+							JSON.stringify({
+								firstName: response.driver.firstName,
+								lastName: response.driver.lastName,
+								phoneNumber: response.driver.phoneNumber,
+								profilePicture: response.driver.profilePicture,
+							}),
+						],
+					]);
+					navigation.navigate('Details');
+				} else {
+					//await AsyncStorage.removeItem('phoneNumber');
+					navigation.navigate('PersonalInformation');
+				}
+			} else {
+				Alert.alert('Verification Failed', response.message || 'Invalid OTP');
+			}
+		} catch (err: unknown) {
+			if ((err as AxiosError)?.response?.status === 400) {
+				Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
+			} else {
+				Alert.alert('Error', 'Something went wrong while verifying OTP');
+			}
+		} finally {
+			setVerifying(false);
+		}
+	};
 
 	if (loading) {
 		return (
@@ -97,7 +124,8 @@ const VerifyScreen = () => {
 				<Text className="text-text text-lg">
 					A 6 digit OTP has been sent to your phone number +91 {phoneNumber}.
 					<Text className="text-primary font-semibold" onPress={() => navigation.goBack()}>
-						{' '}Change
+						{' '}
+						Change
 					</Text>
 				</Text>
 			</View>

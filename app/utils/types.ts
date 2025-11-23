@@ -76,7 +76,7 @@ export type RootStackParamList = {
 	Account: undefined;
 	Leave: undefined;
 	Map: undefined;
-
+	MainTabs: undefined;
 	// Account-specific screens
 	'Edit Profile': undefined;
 	'Allotted Area': undefined;
@@ -85,6 +85,7 @@ export type RootStackParamList = {
 	'Terms and Conditions': undefined;
 	'Privacy Policy': undefined;
 	'Ask For Leave': undefined;
+	History: undefined;
 };
 
 export type NavigationProp<T extends keyof RootStackParamList> = StackNavigationProp<

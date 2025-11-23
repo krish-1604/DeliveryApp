@@ -9,6 +9,8 @@ import {
 	FlatList,
 	StatusBar,
 	Modal,
+	SafeAreaView,
+	Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -141,27 +143,27 @@ const LeaveApplicationPage: React.FC = () => {
 
 	const getStatusColor = (status: LeaveApplication['status']) => {
 		switch (status) {
-		case 'approved':
-			return '#4CAF50';
-		case 'rejected':
-			return '#F44336';
-		case 'pending':
-			return '#FF9800';
-		default:
-			return '#666';
+			case 'approved':
+				return '#4CAF50';
+			case 'rejected':
+				return '#F44336';
+			case 'pending':
+				return '#FF9800';
+			default:
+				return '#666';
 		}
 	};
 
 	const getStatusText = (status: LeaveApplication['status']) => {
 		switch (status) {
-		case 'approved':
-			return 'Approved';
-		case 'rejected':
-			return 'Rejected';
-		case 'pending':
-			return 'Pending';
-		default:
-			return 'Unknown';
+			case 'approved':
+				return 'Approved';
+			case 'rejected':
+				return 'Rejected';
+			case 'pending':
+				return 'Pending';
+			default:
+				return 'Unknown';
 		}
 	};
 
@@ -244,9 +246,10 @@ const LeaveApplicationPage: React.FC = () => {
 			</View>
 		);
 	};
-
+	const isAndroid = Platform.OS === 'android';
+	const Container = isAndroid ? View : SafeAreaView;
 	return (
-		<View style={styles.container}>
+		<Container style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
 			{/* Header */}
@@ -472,7 +475,7 @@ const LeaveApplicationPage: React.FC = () => {
 					onChange={handleToDateChange}
 				/>
 			)}
-		</View>
+		</Container>
 	);
 };
 

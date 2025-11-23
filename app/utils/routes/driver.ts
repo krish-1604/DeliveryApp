@@ -102,6 +102,7 @@ export interface DocumentStatus {
 	license: { front: boolean; back: boolean; verified: boolean };
 	profile: { uploaded: boolean };
 }
+
 export class DriverAPI {
 	private api: AxiosInstance;
 	private baseUrl: string;
@@ -144,7 +145,7 @@ export class DriverAPI {
 		return response.data;
 	}
 
-		async sendOTP(phoneNumber: string): Promise<ApiResponse> {
+	async sendOTP(phoneNumber: string): Promise<ApiResponse> {
 		const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 		const response: AxiosResponse = await this.api.post('/api/auth/send-otp', {
 			phoneNumber: formatted,
@@ -152,7 +153,54 @@ export class DriverAPI {
 		return response.data;
 	}
 
-	async verifyOTP(phoneNumber: string, code: string): Promise<ApiResponse<{ driverId: string }>> {
+	async submitPersonalInformation(personalData: {
+		phoneNumber: string;
+		firstName: string;
+		lastName: string;
+		fatherName: string;
+		dateOfBirth: string;
+		whatsappNumber?: string;
+		secondaryNumber?: string;
+		address: string;
+		language: string;
+		bloodGroup: string;
+	}): Promise<ApiResponse> {
+		const response: AxiosResponse = await this.api.post('/api/auth/personal-info', personalData);
+		return response.data;
+	}
+
+	// New method for submitting personal information with file (profile image)
+	async submitPersonalInformationWithFile(formData: FormData): Promise<ApiResponse> {
+		try {
+			const response: AxiosResponse = await this.api.post('/api/auth/personal-info', formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data',
+				},
+			});
+			return response.data;
+		} catch (error) {
+			console.error('Error submitting personal information with file:', error);
+			throw error;
+		}
+	}
+
+	async verifyOTP(
+		phoneNumber: string,
+		code: string
+	): Promise<{
+		success: boolean;
+		message: string;
+		userExists: boolean;
+		isCompletelyVerified: boolean;
+		token: string;
+		driver: {
+			id: string;
+			phoneNumber: string;
+			firstName: string;
+			lastName: string;
+			profilePicture: string | null;
+		};
+	}> {
 		const response: AxiosResponse = await this.api.post('/api/auth/verify-otp', {
 			phoneNumber,
 			code,
@@ -232,10 +280,9 @@ export class DriverAPI {
 	}
 
 	async updateVehicleDetails(
-		id: string,
 		vehicleData: Partial<VehicleDetails>
 	): Promise<ApiResponse<VehicleDetails>> {
-		const response: AxiosResponse = await this.api.put(`/api/drivers/${id}/vehicle`, vehicleData);
+		const response: AxiosResponse = await this.api.put(`/api/auth/vehicle-details`, vehicleData);
 		return response.data;
 	}
 

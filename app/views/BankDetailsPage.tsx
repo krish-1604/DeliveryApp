@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ButtonOpacity } from '../components/button';
@@ -7,12 +7,13 @@ import { Input } from '../components/input';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import ErrorToast from '../components/error';
 
-const BANK_DETAILS_KEY = 'bank_details';
+const PHONE_NUMBER_KEY = 'phoneNumber';
 const COMPLETION_STATUS_KEY = 'document_completion_status';
 
 export default function BankDetailsPage() {
 	const navigation = useNavigation<NavigationProp<'Bank'>>();
 	const [errorMsg, setErrorMsg] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
 
 	const [bankDetails, setBankDetails] = useState({
 		accountHolderName: '',
@@ -23,39 +24,7 @@ export default function BankDetailsPage() {
 		branchName: '',
 	});
 
-	// Load saved bank details on component mount
-	useEffect(() => {
-		loadBankDetails();
-	}, []);
 
-	const loadBankDetails = async () => {
-		try {
-			const savedDetails = await AsyncStorage.getItem(BANK_DETAILS_KEY);
-			if (savedDetails) {
-				const parsedDetails = JSON.parse(savedDetails);
-				setBankDetails({
-					...parsedDetails,
-					confirmAccountNumber: parsedDetails.accountNumber, // Auto-fill confirm field
-				});
-			}
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while loading bank details.'
-			);
-			// console.error('Error loading bank details:', error);
-		}
-	};
-
-	const saveBankDetails = async () => {
-		try {
-			await AsyncStorage.setItem(BANK_DETAILS_KEY, JSON.stringify(bankDetails));
-		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'An error occurred while saving bank details.'
-			);
-			// console.error('Error saving bank details:', error);
-		}
-	};
 
 	const updateCompletionStatus = async () => {
 		try {
@@ -80,7 +49,62 @@ export default function BankDetailsPage() {
 					? error.message
 					: 'An error occurred while updating completion status.'
 			);
-			// console.error('Error updating completion status:', error);
+		}
+	};
+
+	const getPhoneNumber = async () => {
+		try {
+			const phoneNumber = await AsyncStorage.getItem(PHONE_NUMBER_KEY);
+			if (!phoneNumber) {
+				throw new Error('Phone number not found');
+			}
+			
+			// Add +91 if it doesn't exist
+			return phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+		} catch (error) {
+			throw new Error('Failed to retrieve phone number');
+		}
+	};
+
+	const submitBankDetailsToAPI = async () => {
+		try {
+			const phoneNumber = await getPhoneNumber();
+			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+			
+			if (!baseUrl) {
+				throw new Error('Backend URL not configured');
+			}
+
+			const requestBody = {
+				phoneNumber: phoneNumber,
+				accountHolderName: bankDetails.accountHolderName,
+				accountNumber: bankDetails.accountNumber,
+				confirmAccountNumber: bankDetails.confirmAccountNumber,
+				ifscCode: bankDetails.ifscCode,
+				bankName: bankDetails.bankName,
+				branchName: bankDetails.branchName,
+			};
+
+			const response = await fetch(`${baseUrl}/api/auth/bank-details`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(requestBody),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.message || `Server error: ${response.status}`);
+			}
+
+			const responseData = await response.json();
+			return responseData;
+		} catch (error) {
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error('Failed to submit bank details to server');
 		}
 	};
 
@@ -107,9 +131,14 @@ export default function BankDetailsPage() {
 			return;
 		}
 
+		setIsLoading(true);
 		try {
-			await saveBankDetails();
+			// Submit to API
+			await submitBankDetailsToAPI();
+			
+			// Update completion status after successful API call
 			await updateCompletionStatus();
+			
 			Alert.alert('Success', 'Bank details saved successfully', [
 				{
 					text: 'OK',
@@ -117,9 +146,20 @@ export default function BankDetailsPage() {
 				},
 			]);
 		} catch (error) {
-			setErrorMsg(
-				error instanceof Error ? error.message : 'Failed to save bank details. Please try again.'
-			);
+			let errorMessage = 'Failed to save bank details. Please try again.';
+			
+			if (error instanceof Error) {
+				errorMessage = error.message;
+			}
+			
+			setErrorMsg(errorMessage);
+			
+			// Show alert for critical errors
+			if (errorMessage.includes('Phone number not found') || errorMessage.includes('Backend URL not configured')) {
+				Alert.alert('Configuration Error', errorMessage);
+			}
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -199,15 +239,15 @@ export default function BankDetailsPage() {
 				<View className="mb-8">
 					<ButtonOpacity
 						onPress={handleSave}
-						disabled={!isFormValid()}
-						className={`${!isFormValid() ? 'bg-gray-400' : 'bg-primary'}`}
+						disabled={!isFormValid() || isLoading}
+						className={`${!isFormValid() || isLoading ? 'bg-gray-400' : 'bg-primary'}`}
 					>
 						<Text
 							className={`font-medium text-xl py-2 ${
-								!isFormValid() ? 'text-gray-600' : 'text-white'
+								!isFormValid() || isLoading ? 'text-gray-600' : 'text-white'
 							}`}
 						>
-							Save Details
+							{isLoading ? 'Saving...' : 'Save Details'}
 						</Text>
 					</ButtonOpacity>
 				</View>

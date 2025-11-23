@@ -8,17 +8,79 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../utils/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ErrorToast from '../components/error';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegistrationPage() {
+	const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 	const [errorMsg, setErrorMsg] = React.useState('');
-	const verificationData = [
+
+	const [verificationData, setVerificationData] = React.useState([
 		{ name: 'Personal Information', isVerified: true },
 		{ name: 'Personal Documents', isVerified: true },
 		{ name: 'Vehicle Details', isVerified: true },
 		{ name: 'Bank Account Details', isVerified: true },
 		{ name: 'Emergency Details', isVerified: true },
-	];
+	]);
+
+	React.useEffect(() => {
+		//console.log('Registration page');
+		const getVerificationStatus = async () => {
+			console.log('Registration page');
+
+			const phoneNum = await AsyncStorage.getItem('phoneNumber');
+			const URL = BACKEND_URL + '/api/auth/complete-verification';
+
+			try {
+				const response = await fetch(URL, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						phoneNumber: `+91${phoneNum}`,
+					}),
+				});
+				console.log('Verification API called');
+
+				const data = await response.json();
+				//console.log('Verification status:', data);
+				console.log(data);
+
+				if (data?.success && data?.profileStatus) {
+					const status = data.profileStatus;
+					console.log('Registrations: ', data.token);
+					await AsyncStorage.setItem('auth_token', data.token);
+					const updatedStatus = [
+						{ name: 'Personal Information', isVerified: true },
+						{ name: 'Personal Documents', isVerified: true },
+						{ name: 'Vehicle Details', isVerified: true },
+						{ name: 'Bank Account Details', isVerified: true },
+						{ name: 'Emergency Details', isVerified: true },
+					];
+					// const updatedStatus = [
+					// 	{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+					// 	{
+					// 		name: 'Personal Documents',
+					// 		isVerified: status.personalDocuments?.verified ?? false,
+					// 	},
+					// 	{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+					// 	{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+					// 	{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+					// ];
+
+					setVerificationData(updatedStatus);
+				}
+			} catch (error) {
+				console.error('Error fetching verification status:', error);
+				setErrorMsg('Failed to load verification status. Please try again later.');
+			}
+		};
+
+		getVerificationStatus();
+	}, []);
+
 	const handleButtonPress = async () => {
 		try {
 			await AsyncStorage.setItem('isVerified', 'true');
@@ -38,7 +100,14 @@ export default function RegistrationPage() {
 	);
 
 	return (
-		<View className="flex-1 bg-white">
+		<View
+			className="flex-1 bg-white"
+			style={{
+				flex: 1,
+				backgroundColor: '#fff',
+				paddingTop: insets.top,
+			}}
+		>
 			<ScrollView
 				contentContainerStyle={{ paddingBottom: 120 }}
 				showsVerticalScrollIndicator={false}
@@ -50,7 +119,7 @@ export default function RegistrationPage() {
 					</View>
 
 					<TouchableOpacity
-						onPress={() => navigation.goBack()}
+						onPress={() => navigation.navigate('Details')}
 						className="absolute left-5 top-10 mt-2 ml-2 -translate-y-1/2 z-10"
 					>
 						<Ionicons name="chevron-back" size={24} color="black" />

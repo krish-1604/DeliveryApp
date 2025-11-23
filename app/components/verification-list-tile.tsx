@@ -13,8 +13,8 @@ export default function VerificationListTile({
 			>
 				<View className="flex-col">
 					<Text className="font-medium text-base text-[#2B2E35] pb-1">{name}</Text>
-					<Text className={` font-bold ${!isVerified ? 'text-[#969AA4]' : 'text-[#FAA41A]'}`}>
-						{isVerified ? 'Verified' : 'Not Verified'}
+					<Text className={`font-bold ${!isVerified ? 'text-[#969AA4]' : 'text-green-600'}`}>
+						{isVerified ? 'Verified' : 'Verification Pending'}
 					</Text>
 				</View>
 			</Pressable>
