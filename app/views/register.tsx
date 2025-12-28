@@ -27,7 +27,6 @@ const RegisterScreen = () => {
 		const fetchDriverID = async () => {
 			const driverID = await AsyncStorage.getItem('driverID');
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
-			console.log('OTP Page: ' + driverID + phoneNum);
 		};
 		fetchDriverID();
 	}, []);
@@ -45,12 +44,8 @@ const RegisterScreen = () => {
 
 		try {
 			setLoading(true);
-			console.log('1 --------------------------------- 1');
 			const api = new DriverAPI();
-			console.log('2 --------------------------------- 2');
 			const response = await api.sendOTP(number);
-			console.log('3 --------------------------------- 3');
-			console.log(response);
 			if (response.success) {
 				await AsyncStorage.setItem('phoneNumber', number);
 				navigation.navigate('Verify');

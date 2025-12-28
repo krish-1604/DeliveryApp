@@ -51,9 +51,7 @@ const VerifyScreen = () => {
 			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 			const api = new DriverAPI();
 			const response = await api.verifyOTP(formatted, otpValues);
-			console.log('Verification response:', response);
 			if (response.success) {
-				//console.log(response.driver.id);
 				await AsyncStorage.setItem('driverId', response.driver.id);
 				if (response.userExists && response.isCompletelyVerified) {
 					await AsyncStorage.multiSet([

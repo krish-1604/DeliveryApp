@@ -105,7 +105,6 @@ export default function VehicleDetailsPage() {
 				yearOfManufacture: parseInt(vehicleDetails.yearOfManufacture, 10),
 			};
 
-			//console.log('API Payload:', JSON.stringify(apiPayload, null, 2));
 			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
 			if (!baseUrl) {
 				throw new Error('Backend URL not configured');
@@ -119,7 +118,6 @@ export default function VehicleDetailsPage() {
 			});
 
 			const response = await responses.json();
-			//console.log('API Response:', response);
 			if (response.success) {
 				// Update local completion status
 				await updateCompletionStatus();
