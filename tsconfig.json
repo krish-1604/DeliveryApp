@@ -2,20 +2,17 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "types": ["nativewind/types"],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "assets/images/*.png",
-    "images.d.ts",
     "nativewind-env.d.ts"
   ],
-  "exclude": [
-    "__tests__/**/*-test.ts"
-  ]
+  "exclude": ["node_modules", "babel.config.js", "metro.config.js"]
 }

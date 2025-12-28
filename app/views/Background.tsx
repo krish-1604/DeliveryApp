@@ -1,4 +1,4 @@
-import { Image, View } from 'react-native';
+import { Image, View, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
 import { Body, Heading } from '../components/typography';
 import React, { ReactNode } from 'react';
 import authImage from '../assets/images/main-splash.png';
@@ -9,25 +9,39 @@ type BackgroundProps = {
 
 const Background: React.FC<BackgroundProps> = ({ children }) => {
 	return (
-		<View className="w-full flex-1">
-			<View className="w-full">
-				<View className="absolute -top-1/4 scale-[2] overflow-hidden left-0 w-full h-full rounded-br-[50%] rounded-tr-[60%] rotate-[60deg] bg-primary/40" />
-				<View className="flex px-5 justify-center gap-5 items-center w-full h-full">
-					<Image
-						source={authImage}
-						className="flex justify-center align-middle h-full/2 w-auto object-cover aspect-square"
-					/>
-					<View className="absolute top-10 right-16 bg-white rounded-full w-1 h-1"></View>
-					<View className="absolute top-16 right-1/2 bg-white rounded-full w-1 h-1"></View>
-					<View className="absolute top-10 left-1/4 bg-white rounded-full w-1 h-1"></View>
-					<View className="absolute top-1/4 left-16 bg-white rounded-full w-1 h-1"></View>
-					<View className="flex w-full">
-						<Body text="Be a Himalayan Droneshala Delivery Partner" />
-						<Heading text="Get a stable monthly income" />
+		<View 
+			className="flex-1 w-full" 
+			// behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+		>
+			<ScrollView 
+				className="flex-1"
+				contentContainerStyle={{ flexGrow: 1 }}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+				bounces={false}
+				scrollEnabled={false}
+			>
+				<View className="w-full flex-1">
+					<View className="w-full min-h-[400px] max-h-[500px] bg-primary/40 pt-8">
+						<View className="flex px-5 py-8 justify-center gap-3 items-center w-full h-full">
+							<Image
+								source={authImage}
+								className="h-100 w-100 object-cover"
+								resizeMode="contain"
+							/>
+							<View className="absolute top-10 right-16 bg-white rounded-full w-1 h-1"></View>
+							<View className="absolute top-16 right-1/2 bg-white rounded-full w-1 h-1"></View>
+							<View className="absolute top-10 left-1/4 bg-white rounded-full w-1 h-1"></View>
+							<View className="absolute top-1/4 left-16 bg-white rounded-full w-1 h-1"></View>
+							<View className="flex w-full px-2">
+								<Body text="Be a Himalayan Droneshala Delivery Partner" />
+								<Heading text="Get a stable monthly income" />
+							</View>
+						</View>
 					</View>
+					<View className="flex-1 min-h-[300px]">{children}</View>
 				</View>
-			</View>
-			<View className="flex-1 ">{children}</View>
+			</ScrollView>
 		</View>
 	);
 };

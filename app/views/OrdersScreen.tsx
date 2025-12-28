@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from 'react-native/Libraries/NewAppScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -418,7 +417,7 @@ export default function OrdersScreen() {
 					paddingVertical: 8,
 					borderBottomWidth: 1,
 					borderBottomColor: '#d8d8d8ff',
-					shadowColor: Colors.black,
+					shadowColor: '#000',
 					shadowOffset: { width: 0, height: 2 },
 					shadowOpacity: 0.04,
 					shadowRadius: 8,
