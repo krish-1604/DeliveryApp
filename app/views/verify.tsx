@@ -48,6 +48,48 @@ const VerifyScreen = () => {
 
 		try {
 			setVerifying(true);
+			
+			// Testing backdoor: Allow test phone number with specific OTP
+			if (phoneNumber === '8888888888' && otpValues === '123456') {
+				// Mock successful verification for test user
+				const mockResponse = {
+					success: true,
+					message: 'OTP verified successfully (TEST MODE)',
+					userExists: false,
+					isCompletelyVerified: false,
+					token: 'test_token_' + Date.now(),
+					driver: {
+						id: 'test_driver_' + Date.now(),
+						phoneNumber: '+918888888888',
+						firstName: 'Test',
+						lastName: 'User',
+						profilePicture: null,
+					},
+				};
+				
+				await AsyncStorage.setItem('driverId', mockResponse.driver.id);
+				
+				if (mockResponse.userExists && mockResponse.isCompletelyVerified) {
+					await AsyncStorage.multiSet([
+						['auth_token', mockResponse.token],
+						['isVerified', 'true'],
+						[
+							'userProfile',
+							JSON.stringify({
+								firstName: mockResponse.driver.firstName,
+								lastName: mockResponse.driver.lastName,
+								phoneNumber: mockResponse.driver.phoneNumber,
+								profilePicture: mockResponse.driver.profilePicture,
+							}),
+						],
+					]);
+					navigation.navigate('MainTabs');
+				} else {
+					navigation.navigate('PersonalInformation');
+				}
+				return;
+			}
+			
 			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 			const api = new DriverAPI();
 			const response = await api.verifyOTP(formatted, otpValues);
