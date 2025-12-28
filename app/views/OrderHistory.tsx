@@ -53,6 +53,13 @@ const HistoryScreen = () => {
 	useEffect(() => {
 		const fetchOrders = async () => {
 			const token = await AsyncStorage.getItem('auth_token');
+			
+			if (!token) {
+				console.error('No auth token found in OrderHistory');
+				setLoading(false);
+				return;
+			}
+			
 			const url = baseURL + '/api/orders/driver/jobs/history?limit=20&offset=0';
 			try {
 				const response = await fetch(url, {

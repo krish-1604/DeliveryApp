@@ -17,11 +17,11 @@ export default function RegistrationPage() {
 	const [errorMsg, setErrorMsg] = React.useState('');
 
 	const [verificationData, setVerificationData] = React.useState([
-		{ name: 'Personal Information', isVerified: true },
-		{ name: 'Personal Documents', isVerified: true },
-		{ name: 'Vehicle Details', isVerified: true },
-		{ name: 'Bank Account Details', isVerified: true },
-		{ name: 'Emergency Details', isVerified: true },
+		{ name: 'Personal Information', isVerified: false },
+		{ name: 'Personal Documents', isVerified: false },
+		{ name: 'Vehicle Details', isVerified: false },
+		{ name: 'Bank Account Details', isVerified: false },
+		{ name: 'Emergency Details', isVerified: false },
 	]);
 
 	React.useEffect(() => {
@@ -52,23 +52,18 @@ export default function RegistrationPage() {
 					const status = data.profileStatus;
 					console.log('Registrations: ', data.token);
 					await AsyncStorage.setItem('auth_token', data.token);
+					
+					// Use actual verification status from API
 					const updatedStatus = [
-						{ name: 'Personal Information', isVerified: true },
-						{ name: 'Personal Documents', isVerified: true },
-						{ name: 'Vehicle Details', isVerified: true },
-						{ name: 'Bank Account Details', isVerified: true },
-						{ name: 'Emergency Details', isVerified: true },
+						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+						{
+							name: 'Personal Documents',
+							isVerified: status.personalDocuments?.verified ?? false,
+						},
+						{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+						{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+						{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
 					];
-					// const updatedStatus = [
-					// 	{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
-					// 	{
-					// 		name: 'Personal Documents',
-					// 		isVerified: status.personalDocuments?.verified ?? false,
-					// 	},
-					// 	{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
-					// 	{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
-					// 	{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
-					// ];
 
 					setVerificationData(updatedStatus);
 				}
@@ -109,11 +104,11 @@ export default function RegistrationPage() {
 			}}
 		>
 			<ScrollView
-				contentContainerStyle={{ paddingBottom: 120 }}
+				contentContainerStyle={{ paddingBottom: 200 }}
 				showsVerticalScrollIndicator={false}
 			>
 				{/* Header */}
-				<View className="bg-white rounded-b-3xl px-5 pt-12 pb-6 shadow-md z-10 relative">
+				<View className="bg-white rounded-b-3xl px-5 pt-8 pb-6 shadow-md z-10 relative">
 					<View className="items-center">
 						<Text className="text-xl font-semibold text-black">Registration Complete</Text>
 					</View>

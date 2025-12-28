@@ -129,16 +129,29 @@ export default function OrdersScreen() {
 		setLoading(true);
 		console.log('Orders loading');
 		setError(null);
-		const token = await AsyncStorage.getItem('auth_token');
-		setToken(token);
-		console.log('Orders API', token);
+		
+		// Get token from state first, fallback to AsyncStorage
+		let authToken = token;
+		if (!authToken) {
+			authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+		}
+		
+		console.log('Orders API', authToken);
+
+		if (!authToken) {
+			console.error('No auth token found');
+			setError('Authentication required. Please login again.');
+			setLoading(false);
+			return;
+		}
 
 		const URL = baseUrl + '/api/orders/driver/jobs/pending';
 		try {
 			const response = await fetch(URL, {
 				method: 'GET',
 				headers: {
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${authToken}`,
 				},
 			});
 			//console.log(response);
@@ -165,6 +178,10 @@ export default function OrdersScreen() {
 	};
 	useEffect(() => {
 		const fetchAvailabilityAndJobs = async () => {
+			// Load token first
+			const authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+			
 			const temp = await AsyncStorage.getItem('availability');
 			//console.log('Availability:', temp);
 
@@ -177,10 +194,13 @@ export default function OrdersScreen() {
 			setOrder(curr_order);
 
 			setIsAvailable(temp === 'true');
-			setLoading(false); // done fetching
-			if (!curr_order) {
-				fetchPendingJobs();
+			
+			// Only fetch if we have a token and no current order
+			if (authToken && !curr_order) {
+				await fetchPendingJobs();
 			}
+			
+			setLoading(false); // done fetching
 		};
 
 		fetchAvailabilityAndJobs();
@@ -191,13 +211,27 @@ export default function OrdersScreen() {
 	const handleConfirmPickup = async (orderId: string) => {
 		//TODO
 		setLoadingPickup(true);
+		
+		// Get token from state or AsyncStorage
+		let authToken = token;
+		if (!authToken) {
+			authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+		}
+		
+		if (!authToken) {
+			alert('Authentication required. Please login again.');
+			setLoadingPickup(false);
+			return;
+		}
+		
 		const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/accept`;
 		console.log(URL);
 		try {
 			const res = await fetch(URL, {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${authToken}`,
 				},
 			});
 			console.log(res);
@@ -274,6 +308,20 @@ export default function OrdersScreen() {
 		//TODO
 		setLoading(true);
 		setDeliveryOrder(orderId);
+		
+		// Get token from state or AsyncStorage
+		let authToken = token;
+		if (!authToken) {
+			authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+		}
+		
+		if (!authToken) {
+			Alert.alert('Error', 'Authentication required. Please login again.');
+			setLoading(false);
+			return;
+		}
+		
 		// setOtpModalVisible(true); // Open OTP modal
 		try {
 			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
@@ -281,7 +329,7 @@ export default function OrdersScreen() {
 			const response = await fetch(URL, {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${authToken}`,
 					'Content-Type': 'application/json',
 				},
 			});
@@ -310,13 +358,26 @@ export default function OrdersScreen() {
 	async function handleVerifyDeliveryOTP() {
 		const URL = baseUrl + `/api/orders/driver/jobs/${deliveryOrder}/verify-delivery`;
 		setLoading(true);
+		
+		// Get token from state or AsyncStorage
+		let authToken = token;
+		if (!authToken) {
+			authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+		}
+		
+		if (!authToken) {
+			Alert.alert('Error', 'Authentication required. Please login again.');
+			setLoading(false);
+			return;
+		}
 
 		try {
 			const response = await fetch(URL, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${authToken}`,
 				},
 				body: JSON.stringify({ otp }),
 			});
@@ -360,12 +421,25 @@ export default function OrdersScreen() {
 		//TODO
 		const URL = baseUrl + '/api/orders/driver/status';
 		const availability = status ? 'AVAILABLE' : 'OFFLINE';
+		
+		// Get token from state or AsyncStorage
+		let authToken = token;
+		if (!authToken) {
+			authToken = await AsyncStorage.getItem('auth_token');
+			setToken(authToken);
+		}
+		
+		if (!authToken) {
+			alert('Authentication required. Please login again.');
+			return { success: false, message: 'No auth token' };
+		}
+		
 		try {
 			const response = await fetch(URL, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
+					Authorization: `Bearer ${authToken}`,
 				},
 				body: JSON.stringify({
 					availability: availability,

@@ -36,7 +36,15 @@
 			"favicon": "./app/assets/images/icon.png"
 		},
 
-		"plugins": ["expo-web-browser"],
+		"plugins": [
+			"expo-web-browser",
+			[
+				"expo-router",
+				{
+					"root": "./app"
+				}
+			]
+		],
 
 		"extra": {
 			"eas": {
