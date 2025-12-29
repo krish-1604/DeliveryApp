@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import React, { useMemo } from 'react';
 import VerificationSVG from '../assets/images/svgs/verification.svg';
 import VerificationListTile from '../components/verification-list-tile';
@@ -15,6 +15,7 @@ export default function RegistrationPage() {
 	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 	const [errorMsg, setErrorMsg] = React.useState('');
+	const [refreshing, setRefreshing] = React.useState(false);
 
 	const [verificationData, setVerificationData] = React.useState([
 		{ name: 'Personal Information', isVerified: false },
@@ -24,57 +25,66 @@ export default function RegistrationPage() {
 		{ name: 'Emergency Details', isVerified: false },
 	]);
 
-	React.useEffect(() => {
-		//console.log('Registration page');
-		const getVerificationStatus = async () => {
-			console.log('Registration page');
+	const fetchVerificationStatus = React.useCallback(async () => {
+		console.log('Registration page');
 
-			const phoneNum = await AsyncStorage.getItem('phoneNumber');
-			const URL = BACKEND_URL + '/api/auth/complete-verification';
+		const phoneNum = await AsyncStorage.getItem('phoneNumber');
+		const URL = BACKEND_URL + '/api/auth/complete-verification';
 
-			try {
-				const response = await fetch(URL, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
+		try {
+			const response = await fetch(URL, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					phoneNumber: `+91${phoneNum}`,
+				}),
+			});
+			console.log('Verification API called');
+
+			const data = await response.json();
+			//console.log('Verification status:', data);
+			console.log(data);
+
+			if (data?.success && data?.profileStatus) {
+				const status = data.profileStatus;
+				console.log('Registrations: ', data.token);
+				await AsyncStorage.setItem('auth_token', data.token);
+				setErrorMsg('');
+
+				// Use actual verification status from API
+				const updatedStatus = [
+					{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+					{
+						name: 'Personal Documents',
+						isVerified: status.personalDocuments?.verified ?? false,
 					},
-					body: JSON.stringify({
-						phoneNumber: `+91${phoneNum}`,
-					}),
-				});
-				console.log('Verification API called');
+					{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+					{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+					{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+				];
 
-				const data = await response.json();
-				//console.log('Verification status:', data);
-				console.log(data);
-
-				if (data?.success && data?.profileStatus) {
-					const status = data.profileStatus;
-					console.log('Registrations: ', data.token);
-					await AsyncStorage.setItem('auth_token', data.token);
-					
-					// Use actual verification status from API
-					const updatedStatus = [
-						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
-						{
-							name: 'Personal Documents',
-							isVerified: status.personalDocuments?.verified ?? false,
-						},
-						{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
-						{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
-						{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
-					];
-
-					setVerificationData(updatedStatus);
-				}
-			} catch (error) {
-				console.error('Error fetching verification status:', error);
-				setErrorMsg('Failed to load verification status. Please try again later.');
+				setVerificationData(updatedStatus);
 			}
-		};
+		} catch (error) {
+			console.error('Error fetching verification status:', error);
+			setErrorMsg('Failed to load verification status. Please try again later.');
+		}
+	}, [BACKEND_URL]);
 
-		getVerificationStatus();
-	}, []);
+	React.useEffect(() => {
+		fetchVerificationStatus();
+	}, [fetchVerificationStatus]);
+
+	const handleRefresh = React.useCallback(async () => {
+		setRefreshing(true);
+		try {
+			await fetchVerificationStatus();
+		} finally {
+			setRefreshing(false);
+		}
+	}, [fetchVerificationStatus]);
 
 	const handleButtonPress = async () => {
 		try {
@@ -103,24 +113,33 @@ export default function RegistrationPage() {
 				paddingTop: insets.top,
 			}}
 		>
+			<View
+				className="bg-white rounded-b-3xl px-5 pt-8 pb-6 z-10 relative"
+				style={{
+					overflow: 'visible',
+					shadowColor: '#000',
+					shadowOffset: { width: 0, height: 12 },
+					shadowOpacity: 0.12,
+					shadowRadius: 18,
+					elevation: 12,
+				}}
+			>
+				<View className="items-center">
+					<Text className="text-xl font-semibold text-black">Registration Complete</Text>
+				</View>
+
+				<TouchableOpacity
+					onPress={() => navigation.navigate('Details')}
+					className="absolute left-5 top-10 mt-2 ml-2 -translate-y-1/2 z-10"
+				>
+					<Ionicons name="chevron-back" size={24} color="black" />
+				</TouchableOpacity>
+			</View>
 			<ScrollView
 				contentContainerStyle={{ paddingBottom: 200 }}
 				showsVerticalScrollIndicator={false}
+				refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
 			>
-				{/* Header */}
-				<View className="bg-white rounded-b-3xl px-5 pt-8 pb-6 shadow-md z-10 relative">
-					<View className="items-center">
-						<Text className="text-xl font-semibold text-black">Registration Complete</Text>
-					</View>
-
-					<TouchableOpacity
-						onPress={() => navigation.navigate('Details')}
-						className="absolute left-5 top-10 mt-2 ml-2 -translate-y-1/2 z-10"
-					>
-						<Ionicons name="chevron-back" size={24} color="black" />
-					</TouchableOpacity>
-				</View>
-
 				{/* Status Card */}
 				<View className="bg-primary mx-4 mt-4 rounded-2xl">
 					<View className="flex-row justify-between items-center px-6 py-6">

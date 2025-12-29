@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
 	View,
 	Text,
@@ -17,6 +17,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../utils/types';
 
 const { width } = Dimensions.get('window');
 const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
@@ -101,6 +104,7 @@ export default function OrdersScreen() {
 	// 	},
 	// ];
 	const insets = useSafeAreaInsets();
+	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 	const [order, setOrder] = useState<Order | null>();
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
@@ -117,6 +121,15 @@ export default function OrdersScreen() {
 	const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
 	const [deliveryOrder, setDeliveryOrder] = useState<string | null>(null);
 
+	const handleAuthRedirect = useCallback(async () => {
+		try {
+			await AsyncStorage.multiRemove(['auth_token', 'accepted_order', 'availability']);
+		} catch (storageError) {
+			console.warn('Failed to clear auth state on redirect:', storageError);
+		}
+		navigation.navigate('Phone');
+	}, [navigation]);
+
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
 	};
@@ -129,14 +142,14 @@ export default function OrdersScreen() {
 		setLoading(true);
 		console.log('Orders loading');
 		setError(null);
-		
+
 		// Get token from state first, fallback to AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
 		}
-		
+
 		console.log('Orders API', authToken);
 
 		if (!authToken) {
@@ -154,6 +167,12 @@ export default function OrdersScreen() {
 					Authorization: `Bearer ${authToken}`,
 				},
 			});
+			if (response.status === 401 || response.status === 403) {
+				setLoading(false);
+				setError('Authentication required. Please login again.');
+				await handleAuthRedirect();
+				return;
+			}
 			//console.log(response);
 			const data = await response.json();
 			console.log(data);
@@ -181,7 +200,7 @@ export default function OrdersScreen() {
 			// Load token first
 			const authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
-			
+
 			const temp = await AsyncStorage.getItem('availability');
 			//console.log('Availability:', temp);
 
@@ -194,12 +213,12 @@ export default function OrdersScreen() {
 			setOrder(curr_order);
 
 			setIsAvailable(temp === 'true');
-			
+
 			// Only fetch if we have a token and no current order
 			if (authToken && !curr_order) {
 				await fetchPendingJobs();
 			}
-			
+
 			setLoading(false); // done fetching
 		};
 
@@ -209,22 +228,21 @@ export default function OrdersScreen() {
 	const [loadingPickup, setLoadingPickup] = useState(false);
 
 	const handleConfirmPickup = async (orderId: string) => {
-		//TODO
 		setLoadingPickup(true);
-		
+
 		// Get token from state or AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
 		}
-		
+
 		if (!authToken) {
 			alert('Authentication required. Please login again.');
 			setLoadingPickup(false);
 			return;
 		}
-		
+
 		const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/accept`;
 		console.log(URL);
 		try {
@@ -235,6 +253,12 @@ export default function OrdersScreen() {
 				},
 			});
 			console.log(res);
+			if (res.status === 401 || res.status === 403) {
+				setLoadingPickup(false);
+				Alert.alert('Session expired', 'Please login again to continue.');
+				await handleAuthRedirect();
+				return;
+			}
 			//const res = { status: 200 };
 			if (res.status === 200) {
 				const data = await res.json();
@@ -286,8 +310,6 @@ export default function OrdersScreen() {
 				} else {
 					alert('Could not accept job. Try again.');
 				}
-			} else if (res.status === 403) {
-				alert('Please change your driver status to "AVAILABLE" to accept jobs.');
 			} else if (res.status === 400) {
 				alert('Invalid request. Please try again.');
 			} else if (res.status === 409) {
@@ -305,23 +327,22 @@ export default function OrdersScreen() {
 	};
 
 	async function handleDeliveryOTP(orderId: string) {
-		//TODO
 		setLoading(true);
 		setDeliveryOrder(orderId);
-		
+
 		// Get token from state or AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
 		}
-		
+
 		if (!authToken) {
 			Alert.alert('Error', 'Authentication required. Please login again.');
 			setLoading(false);
 			return;
 		}
-		
+
 		// setOtpModalVisible(true); // Open OTP modal
 		try {
 			const URL = baseUrl + `/api/orders/driver/jobs/${orderId}/send-delivery-otp`;
@@ -333,6 +354,12 @@ export default function OrdersScreen() {
 					'Content-Type': 'application/json',
 				},
 			});
+			if (response.status === 401 || response.status === 403) {
+				setLoading(false);
+				Alert.alert('Session expired', 'Please login again to continue.');
+				await handleAuthRedirect();
+				return;
+			}
 
 			const data = await response.json();
 			console.log(data);
@@ -358,14 +385,14 @@ export default function OrdersScreen() {
 	async function handleVerifyDeliveryOTP() {
 		const URL = baseUrl + `/api/orders/driver/jobs/${deliveryOrder}/verify-delivery`;
 		setLoading(true);
-		
+
 		// Get token from state or AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
 		}
-		
+
 		if (!authToken) {
 			Alert.alert('Error', 'Authentication required. Please login again.');
 			setLoading(false);
@@ -383,6 +410,12 @@ export default function OrdersScreen() {
 			});
 			console.log(response);
 			console.log(token);
+			if (response.status === 401 || response.status === 403) {
+				setLoading(false);
+				Alert.alert('Session expired', 'Please login again to continue.');
+				await handleAuthRedirect();
+				return;
+			}
 			if (!response.ok) {
 				throw new Error(`HTTP error! Status: ${response.status}`);
 			}
@@ -418,22 +451,21 @@ export default function OrdersScreen() {
 	}
 
 	const handleAvailabilityChange = async (status: boolean) => {
-		//TODO
 		const URL = baseUrl + '/api/orders/driver/status';
 		const availability = status ? 'AVAILABLE' : 'OFFLINE';
-		
+
 		// Get token from state or AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
 			setToken(authToken);
 		}
-		
+
 		if (!authToken) {
 			alert('Authentication required. Please login again.');
 			return { success: false, message: 'No auth token' };
 		}
-		
+
 		try {
 			const response = await fetch(URL, {
 				method: 'POST',
@@ -447,6 +479,11 @@ export default function OrdersScreen() {
 			});
 			const data = await response.json();
 			console.log(data);
+			if (response.status === 401 || response.status === 403) {
+				Alert.alert('Session expired', 'Please login again to continue.');
+				await handleAuthRedirect();
+				return { success: false, message: 'Authentication required' };
+			}
 
 			if (!response.ok) {
 				throw new Error(`HTTP error! Status: ${response.status}`);
@@ -603,147 +640,6 @@ export default function OrdersScreen() {
 					</View>
 				</View>
 			</View>
-			{/* Waste Modal */}
-			<Modal
-				visible={dropdownVisible}
-				transparent
-				animationType="fade"
-				onRequestClose={() => setDropdownVisible(false)}
-			>
-				<TouchableOpacity
-					activeOpacity={1}
-					onPress={() => setDropdownVisible(false)}
-					style={{
-						flex: 1,
-						backgroundColor: 'rgba(0, 0, 0, 0.3)',
-						justifyContent: 'flex-start',
-						paddingTop: 120,
-						paddingHorizontal: 20,
-					}}
-				>
-					<View
-						style={{
-							backgroundColor: '#ffffff',
-							borderRadius: 16,
-							padding: 8,
-							shadowColor: '#000',
-							shadowOffset: { width: 0, height: 4 },
-							shadowOpacity: 0.15,
-							shadowRadius: 12,
-							elevation: 8,
-						}}
-					>
-						{/* Accepted Orders Option */}
-						<TouchableOpacity
-							onPress={() => {
-								setSelectedTab('Accepted');
-								setDropdownVisible(false);
-							}}
-							style={{
-								flexDirection: 'row',
-								alignItems: 'center',
-								paddingHorizontal: 16,
-								paddingVertical: 14,
-								borderRadius: 12,
-								backgroundColor: selectedTab === 'Accepted' ? '#f0f9ff' : 'transparent',
-								marginBottom: 4,
-							}}
-						>
-							<View
-								style={{
-									backgroundColor: selectedTab === 'Accepted' ? '#dbeafe' : '#f1f5f9',
-									padding: 8,
-									borderRadius: 10,
-									marginRight: 12,
-								}}
-							>
-								<Ionicons
-									name="checkmark-circle-outline"
-									size={20}
-									color={selectedTab === 'Accepted' ? '#2563eb' : '#64748b'}
-								/>
-							</View>
-							<View style={{ flex: 1 }}>
-								<Text
-									style={{
-										fontSize: 16,
-										fontWeight: '600',
-										color: selectedTab === 'Accepted' ? '#1e40af' : '#1e293b',
-										marginBottom: 2,
-									}}
-								>
-									Accepted Orders
-								</Text>
-								<Text
-									style={{
-										fontSize: 14,
-										color: selectedTab === 'Accepted' ? '#3b82f6' : '#64748b',
-									}}
-								>
-									Orders you have accepted
-								</Text>
-							</View>
-							{selectedTab === 'Accepted' && (
-								<Ionicons name="checkmark-circle" size={20} color="#10b981" />
-							)}
-						</TouchableOpacity>
-
-						{/* Available Orders Option */}
-						<TouchableOpacity
-							onPress={() => {
-								setSelectedTab('Available');
-								setDropdownVisible(false);
-							}}
-							style={{
-								flexDirection: 'row',
-								alignItems: 'center',
-								paddingHorizontal: 16,
-								paddingVertical: 14,
-								borderRadius: 12,
-								backgroundColor: selectedTab === 'Available' ? '#f0f9ff' : 'transparent',
-							}}
-						>
-							<View
-								style={{
-									backgroundColor: selectedTab === 'Available' ? '#dbeafe' : '#f1f5f9',
-									padding: 8,
-									borderRadius: 10,
-									marginRight: 12,
-								}}
-							>
-								<Ionicons
-									name="time-outline"
-									size={20}
-									color={selectedTab === 'Available' ? '#2563eb' : '#64748b'}
-								/>
-							</View>
-							<View style={{ flex: 1 }}>
-								<Text
-									style={{
-										fontSize: 16,
-										fontWeight: '600',
-										color: selectedTab === 'Available' ? '#1e40af' : '#1e293b',
-										marginBottom: 2,
-									}}
-								>
-									Available Orders
-								</Text>
-								<Text
-									style={{
-										fontSize: 14,
-										color: selectedTab === 'Available' ? '#3b82f6' : '#64748b',
-									}}
-								>
-									New orders waiting for acceptance
-								</Text>
-							</View>
-							{selectedTab === 'Available' && (
-								<Ionicons name="checkmark-circle" size={20} color="#10b981" />
-							)}
-						</TouchableOpacity>
-					</View>
-				</TouchableOpacity>
-			</Modal>
 			{loading ? (
 				// Fullscreen loader while fetching
 				<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

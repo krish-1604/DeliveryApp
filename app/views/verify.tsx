@@ -48,7 +48,7 @@ const VerifyScreen = () => {
 
 		try {
 			setVerifying(true);
-			
+
 			// Testing backdoor: Allow test phone number with specific OTP
 			if (phoneNumber === '8888888888' && otpValues === '123456') {
 				// Mock successful verification for test user
@@ -66,9 +66,9 @@ const VerifyScreen = () => {
 						profilePicture: null,
 					},
 				};
-				
+
 				await AsyncStorage.setItem('driverId', mockResponse.driver.id);
-				
+
 				if (mockResponse.userExists && mockResponse.isCompletelyVerified) {
 					await AsyncStorage.multiSet([
 						['auth_token', mockResponse.token],
@@ -89,13 +89,14 @@ const VerifyScreen = () => {
 				}
 				return;
 			}
-			
+
 			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 			const api = new DriverAPI();
 			const response = await api.verifyOTP(formatted, otpValues);
+			console.log(response);
 			if (response.success) {
-				await AsyncStorage.setItem('driverId', response.driver.id);
 				if (response.userExists && response.isCompletelyVerified) {
+					await AsyncStorage.setItem('driverId', response.driver.id);
 					await AsyncStorage.multiSet([
 						['auth_token', response.token],
 						['isVerified', 'true'],
@@ -111,6 +112,7 @@ const VerifyScreen = () => {
 					]);
 					navigation.navigate('MainTabs');
 				} else if (response.userExists && !response.isCompletelyVerified) {
+					await AsyncStorage.setItem('driverId', response.driver.id);
 					await AsyncStorage.multiSet([
 						[
 							'userProfile',
@@ -131,6 +133,8 @@ const VerifyScreen = () => {
 				Alert.alert('Verification Failed', response.message || 'Invalid OTP');
 			}
 		} catch (err: unknown) {
+			console.log(err);
+
 			if ((err as AxiosError)?.response?.status === 400) {
 				Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
 			} else {

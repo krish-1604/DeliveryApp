@@ -260,7 +260,7 @@ export default function FinalDetailsPage() {
 					<ButtonOpacity
 						onPress={handleSubmit}
 						disabled={!areAllDocumentsCompleted()}
-						className={`${!areAllDocumentsCompleted() ? 'bg-gray-400' : 'bg-primary'}`}
+						className={`${!areAllDocumentsCompleted() ? 'bg-gray-200' : 'bg-primary'}`}
 					>
 						<Text
 							className={`font-medium pb-2 text-2xl py-2 ${

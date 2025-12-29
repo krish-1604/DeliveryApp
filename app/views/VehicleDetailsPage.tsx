@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+	View,
+	Text,
+	ScrollView,
+	TouchableOpacity,
+	ActivityIndicator,
+	Alert,
+	KeyboardAvoidingView,
+	Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ButtonOpacity } from '../components/button';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +34,8 @@ export default function VehicleDetailsPage() {
 		plateNumber: '',
 		yearOfManufacture: '',
 	});
+
+	const insets = useSafeAreaInsets();
 
 	// Load phone number on component mount
 	useEffect(() => {
@@ -153,99 +165,114 @@ export default function VehicleDetailsPage() {
 	}
 
 	return (
-		<View className="h-full flex-col bg-white">
-			{/* Header */}
-			<View className="bg-primary h-[15%] rounded-b-3xl justify-center relative">
-				<View className="flex-row items-center px-4 pt-12">
-					<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 z-10">
-						<Ionicons name="chevron-back" size={24} color="white" />
-					</TouchableOpacity>
-					<View className="absolute left-0 right-0 items-center pt-12 px-6">
-						<Text className="text-white font-bold text-2xl">Vehicle Details</Text>
-						<Text className="text-white font-semibold text-sm mt-2 ml-1">
-							Enter your vehicle details
-						</Text>
+		<KeyboardAvoidingView
+			style={{ flex: 1 }}
+			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+			keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+		>
+			<View className="flex-1 flex-col bg-[#F5F5F5]">
+				{/* Header */}
+				<View
+					className="bg-primary rounded-b-3xl"
+					style={{ paddingTop: insets.top + 16, paddingBottom: 24 }}
+				>
+					<View className="flex-row items-center px-4">
+						<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 z-10">
+							<Ionicons name="chevron-back" size={24} color="white" />
+						</TouchableOpacity>
+						<View className="flex-1 items-center">
+							<Text className="text-white font-bold text-2xl">Vehicle Details</Text>
+							<Text className="text-white font-semibold text-sm mt-2">
+								Enter your vehicle details
+							</Text>
+						</View>
+						<View style={{ width: 24 }} />
 					</View>
 				</View>
-			</View>
 
-			{/* Content */}
-			<ScrollView className="flex-1 px-6 pt-5">
-				<View className="bg-white rounded-xl mb-6">
-					<Text className="text-[#2B2E35] font-semibold pb-4 text-xl">Basic Information</Text>
+				{/* Content */}
+				<ScrollView
+					className="flex-1 px-6 pt-5 bg-[#F5F5F5]"
+					contentContainerStyle={{ paddingBottom: 40 }}
+					keyboardShouldPersistTaps="handled"
+					showsVerticalScrollIndicator={false}
+				>
+					<View className="bg-current rounded-xl mb-6">
+						<Text className="text-[#2B2E35] font-semibold pb-4 text-xl">Basic Information</Text>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Vehicle Type"
-						placeholder="e.g., Car, Motorcycle, Scooter"
-						value={vehicleDetails.vehicleType}
-						onChange={(value) => handleChange('vehicleType', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Vehicle Type"
+							placeholder="e.g., Car, Motorcycle, Scooter"
+							value={vehicleDetails.vehicleType}
+							onChange={(value) => handleChange('vehicleType', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Model"
-						placeholder="Enter vehicle model"
-						value={vehicleDetails.model}
-						onChange={(value) => handleChange('model', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Model"
+							placeholder="Enter vehicle model"
+							value={vehicleDetails.model}
+							onChange={(value) => handleChange('model', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Manufacturer"
-						placeholder="Enter manufacturer name"
-						value={vehicleDetails.manufacturer}
-						onChange={(value) => handleChange('manufacturer', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Manufacturer"
+							placeholder="Enter manufacturer name"
+							value={vehicleDetails.manufacturer}
+							onChange={(value) => handleChange('manufacturer', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Color"
-						placeholder="Enter vehicle color"
-						value={vehicleDetails.color}
-						onChange={(value) => handleChange('color', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Color"
+							placeholder="Enter vehicle color"
+							value={vehicleDetails.color}
+							onChange={(value) => handleChange('color', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Plate Number"
-						placeholder="Enter plate number"
-						value={vehicleDetails.plateNumber}
-						onChange={(value) => handleChange('plateNumber', value.toUpperCase())}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Plate Number"
+							placeholder="Enter plate number"
+							value={vehicleDetails.plateNumber}
+							onChange={(value) => handleChange('plateNumber', value.toUpperCase())}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Year of Manufacture"
-						placeholder="Enter year of manufacture"
-						value={vehicleDetails.yearOfManufacture}
-						onChange={(value) => handleChange('yearOfManufacture', value)}
-						keyboardType="numeric"
-					/>
-				</View>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Year of Manufacture"
+							placeholder="Enter year of manufacture"
+							value={vehicleDetails.yearOfManufacture}
+							onChange={(value) => handleChange('yearOfManufacture', value)}
+							keyboardType="numeric"
+						/>
+					</View>
 
-				<View className="mb-100">
-					<ButtonOpacity
-						onPress={handleSave}
-						disabled={isButtonDisabled}
-						className={`rounded-full px-6 py-3 items-center justify-center flex-row ${
-							isButtonDisabled ? 'bg-gray-400' : 'bg-primary'
-						}`}
-					>
-						<Text
-							className={`font-medium text-xl ${isButtonDisabled ? 'text-gray-600' : 'text-white'}`}
+					<View style={{ paddingBottom: 6 }}>
+						<ButtonOpacity
+							onPress={handleSave}
+							disabled={isButtonDisabled}
+							className={`rounded-full px-6 py-3 items-center justify-center flex-row ${
+								isButtonDisabled ? 'bg-gray-200' : 'bg-primary'
+							}`}
 						>
-							{isSaving ? 'Saving...' : 'Save Details'}
-						</Text>
-						{isSaving && (
-							<View className="ml-2">
-								<ActivityIndicator color="white" />
-							</View>
-						)}
-					</ButtonOpacity>
-				</View>
-			</ScrollView>
-			{errorMsg ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
-		</View>
+							<Text
+								className={`font-medium text-xl ${isButtonDisabled ? 'text-gray-600' : 'text-white'}`}
+							>
+								{isSaving ? 'Saving...' : 'Save Details'}
+							</Text>
+							{isSaving && (
+								<View className="ml-2">
+									<ActivityIndicator color="white" />
+								</View>
+							)}
+						</ButtonOpacity>
+					</View>
+				</ScrollView>
+				{errorMsg ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
+			</View>
+		</KeyboardAvoidingView>
 	);
 }
