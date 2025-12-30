@@ -29,6 +29,10 @@ export default function RegistrationPage() {
 		console.log('Registration page');
 
 		const phoneNum = await AsyncStorage.getItem('phoneNumber');
+		console.log(phoneNum);
+		if (!phoneNum) {
+			navigation.navigate('Phone');
+		}
 		const URL = BACKEND_URL + '/api/auth/complete-verification';
 
 		try {
@@ -47,12 +51,13 @@ export default function RegistrationPage() {
 			//console.log('Verification status:', data);
 			console.log(data);
 
-			if (data?.success && data?.profileStatus) {
+			if (data?.profileStatus) {
 				const status = data.profileStatus;
-				console.log('Registrations: ', data.token);
-				await AsyncStorage.setItem('auth_token', data.token);
-				setErrorMsg('');
-
+				if (data?.success) {
+					console.log('Registrations: ', data.token);
+					await AsyncStorage.setItem('auth_token', data.token);
+					setErrorMsg('');
+				}
 				// Use actual verification status from API
 				const updatedStatus = [
 					{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
@@ -64,8 +69,15 @@ export default function RegistrationPage() {
 					{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
 					{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
 				];
+				console.log(updatedStatus);
 
 				setVerificationData(updatedStatus);
+			} else {
+				if (data.error == 'Phone not verified') {
+					console.error('Auth error:', data.message);
+					navigation.navigate('Phone');
+				} else if (data.error == '') {
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching verification status:', error);

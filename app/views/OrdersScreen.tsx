@@ -127,7 +127,7 @@ export default function OrdersScreen() {
 		} catch (storageError) {
 			console.warn('Failed to clear auth state on redirect:', storageError);
 		}
-		navigation.navigate('Phone');
+		// navigation.navigate('Phone');
 	}, [navigation]);
 
 	const toggleExpand = (id: string) => {
@@ -143,7 +143,6 @@ export default function OrdersScreen() {
 		console.log('Orders loading');
 		setError(null);
 
-		// Get token from state first, fallback to AsyncStorage
 		let authToken = token;
 		if (!authToken) {
 			authToken = await AsyncStorage.getItem('auth_token');
@@ -199,6 +198,8 @@ export default function OrdersScreen() {
 		const fetchAvailabilityAndJobs = async () => {
 			// Load token first
 			const authToken = await AsyncStorage.getItem('auth_token');
+			console.log(authToken);
+
 			setToken(authToken);
 
 			const temp = await AsyncStorage.getItem('availability');

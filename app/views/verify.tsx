@@ -95,6 +95,8 @@ const VerifyScreen = () => {
 			const response = await api.verifyOTP(formatted, otpValues);
 			console.log(response);
 			if (response.success) {
+				console.log(response);
+
 				if (response.userExists && response.isCompletelyVerified) {
 					await AsyncStorage.setItem('driverId', response.driver.id);
 					await AsyncStorage.multiSet([

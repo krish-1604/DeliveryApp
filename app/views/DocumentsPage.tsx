@@ -27,15 +27,31 @@ interface DocumentsStatus {
 	drivingLicense: boolean;
 }
 
+const INITIAL_DOCUMENTS_STATUS: DocumentsStatus = {
+	aadhaarCard: false,
+	panCard: false,
+	drivingLicense: false,
+};
+
+const DOCUMENT_IMAGE_KEYS = [
+	'aadhaarCard_frontPhoto',
+	'aadhaarCard_backPhoto',
+	'panCard_frontPhoto',
+	'panCard_backPhoto',
+	'drivingLicense_frontPhoto',
+	'drivingLicense_backPhoto',
+];
+
+const createInitialDocumentsStatus = (): DocumentsStatus => ({ ...INITIAL_DOCUMENTS_STATUS });
+
 const DocumentsPage = () => {
 	const navigation = useNavigation<NavigationProp<'Documents'>>();
-	const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus>({
-		aadhaarCard: false,
-		panCard: false,
-		drivingLicense: false,
-	});
+	const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus>(() =>
+		createInitialDocumentsStatus()
+	);
 	const [errorMsg, setErrorMsg] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const [hasSubmitted, setHasSubmitted] = useState(false);
 
 	// Load documents status on component mount and when screen comes into focus
 	useEffect(() => {
@@ -72,7 +88,7 @@ const DocumentsPage = () => {
 		}
 	};
 
-	const updateCompletionStatus = async () => {
+	const updateCompletionStatus = async (statusOverride?: DocumentsStatus) => {
 		try {
 			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
 			let completionStatus = {
@@ -87,11 +103,11 @@ const DocumentsPage = () => {
 				completionStatus = JSON.parse(savedStatus);
 			}
 
-			// Check if all documents are uploaded
-			// const allDocumentsUploaded = Object.values(documentsStatus).every((status) => status);
-			// completionStatus.personalDocuments = allDocumentsUploaded;
+			const statusToEvaluate = statusOverride ?? documentsStatus;
+			const allDocumentsUploaded = Object.values(statusToEvaluate).every((status) => status);
+			completionStatus.personalDocuments = allDocumentsUploaded;
 
-			// await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
 		} catch (error) {
 			setErrorMsg(
 				error instanceof Error
@@ -104,11 +120,34 @@ const DocumentsPage = () => {
 
 	// Update completion status whenever documents status changes
 	useEffect(() => {
-		updateCompletionStatus();
+		void updateCompletionStatus();
 	}, [documentsStatus]);
 
-	const handleBackPress = () => {
+	const clearLocalDocumentData = async () => {
+		try {
+			const storedImages = await AsyncStorage.multiGet(DOCUMENT_IMAGE_KEYS);
+			await Promise.all(
+				storedImages
+					.map(([, uri]) => uri)
+					.filter((uri): uri is string => Boolean(uri))
+					.map((uri) => deleteCachedImage(uri))
+			);
+			await AsyncStorage.multiRemove(DOCUMENT_IMAGE_KEYS);
+			await AsyncStorage.removeItem(DOCUMENTS_STATUS_KEY);
+			setDocumentsStatus(createInitialDocumentsStatus());
+			await updateCompletionStatus(INITIAL_DOCUMENTS_STATUS);
+		} catch (error) {
+			setErrorMsg(
+				error instanceof Error ? error.message : 'An error occurred while clearing document data.'
+			);
+		}
+	};
+
+	const handleBackPress = async () => {
 		if (isLoading) return; // Prevent navigation while loading
+		if (!hasSubmitted) {
+			await clearLocalDocumentData();
+		}
 		navigation.goBack();
 	};
 
@@ -184,15 +223,7 @@ const DocumentsPage = () => {
 		setIsLoading(true);
 
 		try {
-			const keys = [
-				'aadhaarCard_frontPhoto',
-				'aadhaarCard_backPhoto',
-				'panCard_frontPhoto',
-				'panCard_backPhoto',
-				'drivingLicense_frontPhoto',
-				'drivingLicense_backPhoto',
-			];
-			const result = await AsyncStorage.multiGet(keys);
+			const result = await AsyncStorage.multiGet(DOCUMENT_IMAGE_KEYS);
 			const phoneNum = await AsyncStorage.getItem('phoneNumber');
 			const formattedNum = '+91' + phoneNum;
 			console.log(formattedNum);
@@ -201,14 +232,7 @@ const DocumentsPage = () => {
 			//console.log('Document URIs:', URIs);
 
 			// Check if all required images are present
-			const requiredImages = [
-				'aadhaarCard_frontPhoto',
-				'aadhaarCard_backPhoto',
-				'panCard_frontPhoto',
-				'panCard_backPhoto',
-				'drivingLicense_frontPhoto',
-				'drivingLicense_backPhoto',
-			];
+			const requiredImages = DOCUMENT_IMAGE_KEYS;
 
 			for (const imageKey of requiredImages) {
 				if (!URIs[imageKey]) {
@@ -295,28 +319,15 @@ const DocumentsPage = () => {
 			// Clean up cached images (both original and compressed)
 			const imagesToDelete = [...Object.values(URIs), ...Object.values(compressedURIs)];
 
-			imagesToDelete.forEach((imageUri) => {
-				if (imageUri) {
-					deleteCachedImage(imageUri);
-				}
-			});
-
-			// Update completion status
-			const savedStatus = await AsyncStorage.getItem(COMPLETION_STATUS_KEY);
-			let completionStatus = {
-				personalInformation: false,
-				personalDocuments: false,
-				vehicleDetails: false,
-				bankDetails: false,
-				emergencyDetails: false,
-			};
-
-			if (savedStatus) {
-				completionStatus = JSON.parse(savedStatus);
-			}
-
-			completionStatus.personalDocuments = true;
-			await AsyncStorage.setItem(COMPLETION_STATUS_KEY, JSON.stringify(completionStatus));
+			await Promise.all(
+				imagesToDelete
+					.filter((imageUri): imageUri is string => Boolean(imageUri))
+					.map((imageUri) => deleteCachedImage(imageUri))
+			);
+			await AsyncStorage.multiRemove(DOCUMENT_IMAGE_KEYS);
+			await AsyncStorage.removeItem(DOCUMENTS_STATUS_KEY);
+			setHasSubmitted(true);
+			console.log('Removed async storage documents_status');
 
 			navigation.goBack();
 		} catch (err) {
