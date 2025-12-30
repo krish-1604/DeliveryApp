@@ -49,6 +49,12 @@ const VerifyScreen = () => {
 		try {
 			setVerifying(true);
 
+			const persistToken = async (token?: string | null) => {
+				if (token) {
+					await AsyncStorage.setItem('auth_token', token);
+				}
+			};
+
 			// Testing backdoor: Allow test phone number with specific OTP
 			if (phoneNumber === '8888888888' && otpValues === '123456') {
 				// Mock successful verification for test user
@@ -68,10 +74,10 @@ const VerifyScreen = () => {
 				};
 
 				await AsyncStorage.setItem('driverId', mockResponse.driver.id);
+				await persistToken(mockResponse.token);
 
 				if (mockResponse.userExists && mockResponse.isCompletelyVerified) {
-					await AsyncStorage.multiSet([
-						['auth_token', mockResponse.token],
+					const payload: [string, string][] = [
 						['isVerified', 'true'],
 						[
 							'userProfile',
@@ -82,7 +88,11 @@ const VerifyScreen = () => {
 								profilePicture: mockResponse.driver.profilePicture,
 							}),
 						],
-					]);
+					];
+					if (mockResponse.token) {
+						payload.push(['auth_token', mockResponse.token]);
+					}
+					await AsyncStorage.multiSet(payload);
 					navigation.navigate('MainTabs');
 				} else {
 					navigation.navigate('PersonalInformation');
@@ -97,35 +107,29 @@ const VerifyScreen = () => {
 			if (response.success) {
 				console.log(response);
 
+				await AsyncStorage.setItem('driverId', response.driver.id);
+				await persistToken(response.token);
+				console.log(response.token);
+
+				const profileEntry: [string, string] = [
+					'userProfile',
+					JSON.stringify({
+						firstName: response.driver.firstName,
+						lastName: response.driver.lastName,
+						phoneNumber: response.driver.phoneNumber,
+						profilePicture: response.driver.profilePicture,
+					}),
+				];
+
 				if (response.userExists && response.isCompletelyVerified) {
-					await AsyncStorage.setItem('driverId', response.driver.id);
-					await AsyncStorage.multiSet([
-						['auth_token', response.token],
-						['isVerified', 'true'],
-						[
-							'userProfile',
-							JSON.stringify({
-								firstName: response.driver.firstName,
-								lastName: response.driver.lastName,
-								phoneNumber: response.driver.phoneNumber,
-								profilePicture: response.driver.profilePicture,
-							}),
-						],
-					]);
+					const entries: [string, string][] = [profileEntry, ['isVerified', 'true']];
+					if (response.token) {
+						entries.push(['auth_token', response.token]);
+					}
+					await AsyncStorage.multiSet(entries);
 					navigation.navigate('MainTabs');
 				} else if (response.userExists && !response.isCompletelyVerified) {
-					await AsyncStorage.setItem('driverId', response.driver.id);
-					await AsyncStorage.multiSet([
-						[
-							'userProfile',
-							JSON.stringify({
-								firstName: response.driver.firstName,
-								lastName: response.driver.lastName,
-								phoneNumber: response.driver.phoneNumber,
-								profilePicture: response.driver.profilePicture,
-							}),
-						],
-					]);
+					await AsyncStorage.multiSet([profileEntry]);
 					navigation.navigate('Details');
 				} else {
 					//await AsyncStorage.removeItem('phoneNumber');

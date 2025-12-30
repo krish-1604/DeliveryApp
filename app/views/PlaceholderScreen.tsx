@@ -28,7 +28,7 @@ const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ title, descriptio
 					alignItems: 'center',
 					paddingHorizontal: 16,
 					paddingVertical: 12,
-					borderBottomWidth: 1,
+					borderBottomWidth: 2,
 					borderBottomColor: '#f1f5f9',
 				}}
 			>

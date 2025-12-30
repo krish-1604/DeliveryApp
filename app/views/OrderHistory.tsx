@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { ensureAuthToken } from '../utils/auth';
 
 export interface Address {
 	zip: string;
@@ -52,14 +53,18 @@ const HistoryScreen = () => {
 
 	useEffect(() => {
 		const fetchOrders = async () => {
-			const token = await AsyncStorage.getItem('auth_token');
-			
+			let token = await AsyncStorage.getItem('auth_token');
+
+			if (!token) {
+				token = await ensureAuthToken();
+			}
+
 			if (!token) {
 				console.error('No auth token found in OrderHistory');
 				setLoading(false);
 				return;
 			}
-			
+
 			const url = baseURL + '/api/orders/driver/jobs/history?limit=20&offset=0';
 			try {
 				const response = await fetch(url, {
@@ -89,49 +94,38 @@ const HistoryScreen = () => {
 	}
 
 	return (
-		<View style={{ paddingTop: insets.top, paddingBottom: insets.bottom, flex: 1 }}>
+		<View
+			style={{
+				paddingTop: insets.top,
+				paddingBottom: insets.bottom,
+				flex: 1,
+				backgroundColor: '#ffffff',
+			}}
+		>
 			{/* Header */}
 			<View
 				style={{
 					flexDirection: 'row',
 					alignItems: 'center',
-					justifyContent: 'center',
-					marginBottom: 16,
-					marginLeft: 12,
 					paddingHorizontal: 16,
-					borderBottomWidth: 1,
-					borderBottomColor: '#d8d8d8ff',
-					shadowColor: '#000',
-					shadowOffset: { width: 0, height: 2 },
-					shadowOpacity: 0.04,
-					shadowRadius: 8,
+					paddingVertical: 12,
+					borderBottomWidth: 2,
+					borderBottomColor: '#f1f5f9',
 				}}
 			>
 				<TouchableOpacity
 					onPress={() => {
 						navigation.goBack();
 					}}
-					style={{
-						position: 'absolute',
-						left: 8,
-						top: 0,
-						bottom: 8,
-						justifyContent: 'center',
-						alignItems: 'center',
-						paddingRight: 12,
-						zIndex: 2,
-					}}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+					style={{ padding: 4, marginRight: 8 }}
 				>
-					<Ionicons name="arrow-back" size={28} color="#1e293b" />
+					<Ionicons name="arrow-back" size={24} color="#1e293b" />
 				</TouchableOpacity>
 				<Text
 					style={{
-						fontSize: 28,
-						fontWeight: '700',
+						fontSize: 18,
+						fontWeight: '600',
 						color: '#1e293b',
-						marginBottom: 12,
-						paddingHorizontal: 16,
 					}}
 				>
 					Order History

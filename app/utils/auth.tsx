@@ -3,6 +3,8 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, ActivityIndicator } from 'react-native';
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+
 /**
  * Hook to check authentication status
  * Returns: { isAuthenticated: boolean, isLoading: boolean, token: string | null }
@@ -20,7 +22,7 @@ export function useAuth() {
 		try {
 			const authToken = await AsyncStorage.getItem('auth_token');
 			const isVerified = await AsyncStorage.getItem('isVerified');
-			
+
 			if (authToken && isVerified === 'true') {
 				setToken(authToken);
 				setIsAuthenticated(true);
@@ -42,6 +44,54 @@ export function useAuth() {
 	};
 
 	return { isAuthenticated, isLoading, token, refreshToken };
+}
+
+/**
+ * Ensure an auth token exists locally by attempting to refresh it from the backend.
+ * Returns the token when available, otherwise null.
+ */
+export async function ensureAuthToken(): Promise<string | null> {
+	const existingToken = await AsyncStorage.getItem('auth_token');
+	if (existingToken) {
+		return existingToken;
+	}
+
+	if (!BACKEND_URL) {
+		console.warn('ensureAuthToken: backend URL not configured');
+		return null;
+	}
+
+	const phoneNumber = await AsyncStorage.getItem('phoneNumber');
+	if (!phoneNumber) {
+		return null;
+	}
+
+	const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+
+	try {
+		const response = await fetch(`${BACKEND_URL}/api/auth/complete-verification`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ phoneNumber: formattedPhone }),
+		});
+
+		if (!response.ok) {
+			console.warn('ensureAuthToken: refresh request failed', response.status);
+			return null;
+		}
+
+		const data = await response.json();
+		if (data?.token) {
+			await AsyncStorage.setItem('auth_token', data.token);
+			return data.token;
+		}
+	} catch (error) {
+		console.error('ensureAuthToken: failed to refresh token', error);
+	}
+
+	return null;
 }
 
 /**

@@ -51,32 +51,37 @@ export default function RegistrationPage() {
 			//console.log('Verification status:', data);
 			console.log(data);
 
-			if (data?.profileStatus) {
-				const status = data.profileStatus;
-				if (data?.success) {
-					console.log('Registrations: ', data.token);
-					await AsyncStorage.setItem('auth_token', data.token);
-					setErrorMsg('');
-				}
-				// Use actual verification status from API
+			if (data.success === true) {
 				const updatedStatus = [
-					{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
-					{
-						name: 'Personal Documents',
-						isVerified: status.personalDocuments?.verified ?? false,
-					},
-					{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
-					{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
-					{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+					{ name: 'Personal Information', isVerified: true },
+					{ name: 'Personal Documents', isVerified: true },
+					{ name: 'Vehicle Details', isVerified: true },
+					{ name: 'Bank Account Details', isVerified: true },
+					{ name: 'Emergency Details', isVerified: true },
 				];
-				console.log(updatedStatus);
-
 				setVerificationData(updatedStatus);
+				setErrorMsg('');
+				console.log(data.token);
+				await AsyncStorage.setItem('auth_token', data.token);
 			} else {
-				if (data.error == 'Phone not verified') {
+				if (data.error === 'Verification pending') {
+					const status = data.profileStatus;
+					const updatedStatus = [
+						{ name: 'Personal Information', isVerified: status.personalInfo?.verified ?? false },
+						{
+							name: 'Personal Documents',
+							isVerified: status.personalDocuments?.verified ?? false,
+						},
+						{ name: 'Vehicle Details', isVerified: status.vehicleDetails?.verified ?? false },
+						{ name: 'Bank Account Details', isVerified: status.bankDetails?.verified ?? false },
+						{ name: 'Emergency Details', isVerified: status.emergencyDetails?.verified ?? false },
+					];
+					console.log(updatedStatus);
+					setVerificationData(updatedStatus);
+					setErrorMsg('');
+				} else {
 					console.error('Auth error:', data.message);
 					navigation.navigate('Phone');
-				} else if (data.error == '') {
 				}
 			}
 		} catch (error) {

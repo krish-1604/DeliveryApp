@@ -9,11 +9,8 @@ type BackgroundProps = {
 
 const Background: React.FC<BackgroundProps> = ({ children }) => {
 	return (
-		<View 
-			className="flex-1 w-full" 
-			// behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-		>
-			<ScrollView 
+		<View className="flex-1 w-full">
+			<ScrollView
 				className="flex-1"
 				contentContainerStyle={{ flexGrow: 1 }}
 				keyboardShouldPersistTaps="handled"
@@ -24,11 +21,7 @@ const Background: React.FC<BackgroundProps> = ({ children }) => {
 				<View className="w-full flex-1">
 					<View className="w-full min-h-[400px] max-h-[500px] bg-primary/40 pt-8">
 						<View className="flex px-5 py-8 justify-center gap-3 items-center w-full h-full">
-							<Image
-								source={authImage}
-								className="h-100 w-100 object-cover"
-								resizeMode="contain"
-							/>
+							<Image source={authImage} className="h-100 w-100 object-cover" resizeMode="contain" />
 							<View className="absolute top-10 right-16 bg-white rounded-full w-1 h-1"></View>
 							<View className="absolute top-16 right-1/2 bg-white rounded-full w-1 h-1"></View>
 							<View className="absolute top-10 left-1/4 bg-white rounded-full w-1 h-1"></View>

@@ -69,21 +69,21 @@ export default function RootLayout() {
 
 	useEffect(() => {
 		const determineInitialRoute = async () => {
+			// await AsyncStorage.removeItem('auth_token');
+			// await AsyncStorage.setItem('detailsSubmit', 'true');
 			// await AsyncStorage.removeItem('phoneNumber');
-			//await AsyncStorage.setItem('isVerified', 'false');
+			// await AsyncStorage.setItem('isVerified', 'false');
 			try {
-				const [isVerifiedEntry, detailsSubmitEntry, driverIdEntry] = await AsyncStorage.multiGet([
-					'isVerified',
-					'detailsSubmit',
-					'driverId',
-				]);
+				const [isVerifiedEntry, detailsSubmitEntry, driverIdEntry, authTokenEntry] =
+					await AsyncStorage.multiGet(['isVerified', 'detailsSubmit', 'driverId', 'auth_token']);
 				const isVerifiedValue = isVerifiedEntry?.[1] === 'true';
 				const driverIdValue = driverIdEntry?.[1] ?? '';
 				const hasSubmittedDetails = detailsSubmitEntry?.[1] === 'true';
+				console.log(detailsSubmitEntry);
 
 				console.log('DRIVERID:', driverIdValue);
 
-				if (isVerifiedValue && driverIdValue) {
+				if (isVerifiedValue && driverIdValue && authTokenEntry?.[1]) {
 					setInitialRoute('MainTabs');
 				} else if (driverIdValue) {
 					if (hasSubmittedDetails) {

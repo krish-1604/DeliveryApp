@@ -24,10 +24,10 @@ export default function FinalDetailsPage() {
 	const navigation = useNavigation<NavigationProp<'PersonalInformation'>>();
 	const [completionStatus, setCompletionStatus] = useState<CompletionStatus>({
 		personalInformation: true,
-		personalDocuments: false,
-		vehicleDetails: false,
-		bankDetails: false,
-		emergencyDetails: false,
+		personalDocuments: true,
+		vehicleDetails: true,
+		bankDetails: true,
+		emergencyDetails: true,
 	});
 
 	// Load completion status from AsyncStorage

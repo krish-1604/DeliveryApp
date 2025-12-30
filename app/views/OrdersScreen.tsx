@@ -105,7 +105,7 @@ export default function OrdersScreen() {
 	// ];
 	const insets = useSafeAreaInsets();
 	const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-	const [order, setOrder] = useState<Order | null>();
+	const [order, setOrder] = useState<Order | null>(null);
 	const [otpModalVisible, setOtpModalVisible] = useState(false);
 	const [otp, setOtp] = useState('');
 	const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -133,98 +133,217 @@ export default function OrdersScreen() {
 	const toggleExpand = (id: string) => {
 		setExpandedOrder(expandedOrder === id ? null : id);
 	};
+
+	const fetchPendingJobs = useCallback(
+		async (authTokenOverride?: string, manageSpinner: boolean = true) => {
+			if (manageSpinner) {
+				setLoading(true);
+			}
+			console.log('Orders loading');
+			setError(null);
+
+			let authTokenToUse = authTokenOverride ?? token;
+			if (!authTokenToUse) {
+				authTokenToUse = await AsyncStorage.getItem('auth_token');
+				if (authTokenToUse) {
+					setToken(authTokenToUse);
+				}
+			}
+
+			console.log('Orders API', authTokenToUse);
+
+			if (!authTokenToUse) {
+				console.error('No auth token found');
+				setError('Authentication required. Please login again.');
+				if (manageSpinner) {
+					setLoading(false);
+				}
+				return false;
+			}
+
+			const URL = baseUrl + '/api/orders/driver/jobs/pending';
+			try {
+				const response = await fetch(URL, {
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${authTokenToUse}`,
+					},
+				});
+				if (response.status === 401 || response.status === 403) {
+					setError('Authentication required. Please login again.');
+					await handleAuthRedirect();
+					if (manageSpinner) {
+						setLoading(false);
+					}
+					return false;
+				}
+
+				const data = await response.json();
+				console.log(data);
+
+				if (!response.ok) {
+					throw new Error(`Error ${response.status}: ${response.statusText}`);
+				}
+
+				if (data.success) {
+					setAvailOrders(data.jobs || []);
+				} else {
+					setAvailOrders([]);
+				}
+				return true;
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'Unknown error');
+				console.log('error', err);
+				setAvailOrders([]);
+				return false;
+			} finally {
+				if (manageSpinner) {
+					setLoading(false);
+				}
+				console.log('Orders finished loading');
+			}
+		},
+		[token, handleAuthRedirect]
+	);
+
 	const onRefresh = async () => {
 		setRefreshing(true);
-		await fetchPendingJobs();
+		await fetchPendingJobs(undefined, false);
 		setRefreshing(false);
 	};
-	const fetchPendingJobs = async () => {
-		setLoading(true);
-		console.log('Orders loading');
-		setError(null);
 
-		let authToken = token;
-		if (!authToken) {
-			authToken = await AsyncStorage.getItem('auth_token');
-			setToken(authToken);
-		}
+	const fetchAvailabilityStatus = useCallback(
+		async (authToken: string, cachedAvailability?: string | null) => {
+			try {
+				const response = await fetch(baseUrl + '/api/orders/driver/status', {
+					method: 'GET',
+					headers: {
+						Authorization: `Bearer ${authToken}`,
+					},
+				});
 
-		console.log('Orders API', authToken);
+				if (response.status === 401 || response.status === 403) {
+					setError('Authentication required. Please login again.');
+					await handleAuthRedirect();
+					return null;
+				}
 
-		if (!authToken) {
-			console.error('No auth token found');
-			setError('Authentication required. Please login again.');
-			setLoading(false);
-			return;
-		}
+				if (!response.ok) {
+					throw new Error(`Error ${response.status}: ${response.statusText}`);
+				}
 
-		const URL = baseUrl + '/api/orders/driver/jobs/pending';
-		try {
-			const response = await fetch(URL, {
-				method: 'GET',
-				headers: {
-					Authorization: `Bearer ${authToken}`,
-				},
-			});
-			if (response.status === 401 || response.status === 403) {
-				setLoading(false);
-				setError('Authentication required. Please login again.');
-				await handleAuthRedirect();
-				return;
+				const data = await response.json();
+				const availabilityValue =
+					data?.availability ??
+					data?.status ??
+					data?.driver?.availability ??
+					data?.data?.availability ??
+					(typeof data === 'string' ? data : undefined);
+
+				const normalizedAvailability =
+					availabilityValue === 'AVAILABLE' ||
+					availabilityValue === 'ONLINE' ||
+					availabilityValue === 'true' ||
+					availabilityValue === true
+						? true
+						: availabilityValue === 'OFFLINE' ||
+							  availabilityValue === 'UNAVAILABLE' ||
+							  availabilityValue === 'OFF' ||
+							  availabilityValue === 'false' ||
+							  availabilityValue === false
+							? false
+							: undefined;
+
+				const fallbackAvailability = cachedAvailability === 'true';
+				const resolvedAvailability =
+					normalizedAvailability !== undefined ? normalizedAvailability : fallbackAvailability;
+
+				setIsAvailable(resolvedAvailability);
+				await AsyncStorage.setItem('availability', JSON.stringify(resolvedAvailability));
+				return resolvedAvailability;
+			} catch (availabilityError) {
+				console.warn('Failed to fetch availability status:', availabilityError);
+				const fallbackValue =
+					cachedAvailability !== undefined
+						? cachedAvailability
+						: await AsyncStorage.getItem('availability');
+				const fallbackAvailability = fallbackValue === 'true';
+				setIsAvailable(fallbackAvailability);
+				return fallbackAvailability;
 			}
-			//console.log(response);
-			const data = await response.json();
-			console.log(data);
+		},
+		[handleAuthRedirect]
+	);
 
-			if (!response.ok) {
-				throw new Error(`Error ${response.status}: ${response.statusText}`);
-			}
-
-			if (data.success) {
-				setAvailOrders(data.jobs || []); // <-- empty array if API returns 0 jobs
-			} else {
-				setAvailOrders([]); // <-- ensure state is empty if success is false
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Unknown error');
-			console.log('error', err);
-			setAvailOrders([]); // <-- clear state on error
-		} finally {
-			setLoading(false);
-			console.log('Orders finished loading');
-		}
-	};
 	useEffect(() => {
-		const fetchAvailabilityAndJobs = async () => {
-			// Load token first
-			const authToken = await AsyncStorage.getItem('auth_token');
-			console.log(authToken);
+		let isActive = true;
 
-			setToken(authToken);
+		const initializeScreen = async () => {
+			setLoading(true);
+			setError(null);
 
-			const temp = await AsyncStorage.getItem('availability');
-			//console.log('Availability:', temp);
+			try {
+				const authToken = await AsyncStorage.getItem('auth_token');
+				if (!isActive) {
+					return;
+				}
 
-			const curr_order_raw = await AsyncStorage.getItem('accepted_order');
-			const curr_order = curr_order_raw ? JSON.parse(curr_order_raw) : null;
-			//console.log('Accepted Order:', curr_order);
+				if (!authToken) {
+					setError('Authentication required. Please login again.');
+					await handleAuthRedirect();
+					return;
+				}
 
-			// Directly use curr_order instead of order state
-			setSelectedTab(curr_order ? 'Accepted' : 'Available');
-			setOrder(curr_order);
+				setToken(authToken);
 
-			setIsAvailable(temp === 'true');
+				const storageValues = await AsyncStorage.multiGet(['availability', 'accepted_order']);
+				let cachedAvailability: string | null = null;
+				let cachedOrder: Order | null = null;
 
-			// Only fetch if we have a token and no current order
-			if (authToken && !curr_order) {
-				await fetchPendingJobs();
+				storageValues.forEach(([key, value]) => {
+					if (key === 'availability') {
+						cachedAvailability = value;
+					}
+					if (key === 'accepted_order' && value) {
+						try {
+							cachedOrder = JSON.parse(value);
+						} catch (parseError) {
+							console.warn('Failed to parse cached order:', parseError);
+							cachedOrder = null;
+						}
+					}
+				});
+
+				if (!isActive) {
+					return;
+				}
+
+				setOrder(cachedOrder);
+				setSelectedTab(cachedOrder ? 'Accepted' : 'Available');
+
+				await fetchAvailabilityStatus(authToken, cachedAvailability);
+
+				if (!cachedOrder) {
+					await fetchPendingJobs(authToken, false);
+				}
+			} catch (initError) {
+				console.error('Error initializing orders screen:', initError);
+				if (isActive) {
+					setError(initError instanceof Error ? initError.message : 'Failed to initialize orders.');
+				}
+			} finally {
+				if (isActive) {
+					setLoading(false);
+				}
 			}
-
-			setLoading(false); // done fetching
 		};
 
-		fetchAvailabilityAndJobs();
-	}, []);
+		initializeScreen();
+
+		return () => {
+			isActive = false;
+		};
+	}, [fetchAvailabilityStatus, fetchPendingJobs, handleAuthRedirect]);
 
 	const [loadingPickup, setLoadingPickup] = useState(false);
 
@@ -330,6 +449,7 @@ export default function OrdersScreen() {
 	async function handleDeliveryOTP(orderId: string) {
 		setLoading(true);
 		setDeliveryOrder(orderId);
+		// console.log(orderId);
 
 		// Get token from state or AsyncStorage
 		let authToken = token;
@@ -494,8 +614,8 @@ export default function OrdersScreen() {
 				console.log('✅ Status updated:', data.message);
 				setIsAvailable(status);
 				await AsyncStorage.setItem('availability', JSON.stringify(status));
-				if (status == true) {
-					fetchPendingJobs();
+				if (status) {
+					await fetchPendingJobs();
 				}
 				return { success: true, message: data.message };
 			} else {

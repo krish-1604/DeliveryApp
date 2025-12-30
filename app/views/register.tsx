@@ -62,7 +62,7 @@ const RegisterScreen = () => {
 	return (
 		<View
 			className="relative flex w-screen bg-white h-screen overflow-hidden"
-			style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+			style={{ paddingBottom: insets.bottom }}
 		>
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -74,7 +74,7 @@ const RegisterScreen = () => {
 						type="number"
 						limit={10}
 						label="Enter Mobile Number"
-						placeholder="e.g. 9999988888"
+						placeholder="e.g. 1234567890"
 						value={number}
 						keyboardType="numeric"
 						onChange={setNumber}
