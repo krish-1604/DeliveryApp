@@ -10,9 +10,9 @@
 		"newArchEnabled": true,
 
 		"splash": {
-			"image": "./app/assets/images/splash.png",
+			"image": "./app/assets/images/logo.png",
 			"resizeMode": "cover",
-			"backgroundColor": "#121212"
+			"backgroundColor": "#033b31"
 		},
 
 		"ios": {
