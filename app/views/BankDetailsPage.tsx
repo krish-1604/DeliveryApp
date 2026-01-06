@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+	View,
+	Text,
+	ScrollView,
+	TouchableOpacity,
+	Alert,
+	KeyboardAvoidingView,
+	Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ButtonOpacity } from '../components/button';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +23,7 @@ export default function BankDetailsPage() {
 	const navigation = useNavigation<NavigationProp<'Bank'>>();
 	const [errorMsg, setErrorMsg] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
+	const insets = useSafeAreaInsets();
 
 	const [bankDetails, setBankDetails] = useState({
 		accountHolderName: '',
@@ -23,8 +33,6 @@ export default function BankDetailsPage() {
 		bankName: '',
 		branchName: '',
 	});
-
-
 
 	const updateCompletionStatus = async () => {
 		try {
@@ -58,7 +66,7 @@ export default function BankDetailsPage() {
 			if (!phoneNumber) {
 				throw new Error('Phone number not found');
 			}
-			
+
 			// Add +91 if it doesn't exist
 			return phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
 		} catch (error) {
@@ -70,7 +78,7 @@ export default function BankDetailsPage() {
 		try {
 			const phoneNumber = await getPhoneNumber();
 			const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
-			
+
 			if (!baseUrl) {
 				throw new Error('Backend URL not configured');
 			}
@@ -135,10 +143,10 @@ export default function BankDetailsPage() {
 		try {
 			// Submit to API
 			await submitBankDetailsToAPI();
-			
+
 			// Update completion status after successful API call
 			await updateCompletionStatus();
-			
+
 			Alert.alert('Success', 'Bank details saved successfully', [
 				{
 					text: 'OK',
@@ -147,15 +155,18 @@ export default function BankDetailsPage() {
 			]);
 		} catch (error) {
 			let errorMessage = 'Failed to save bank details. Please try again.';
-			
+
 			if (error instanceof Error) {
 				errorMessage = error.message;
 			}
-			
+
 			setErrorMsg(errorMessage);
-			
+
 			// Show alert for critical errors
-			if (errorMessage.includes('Phone number not found') || errorMessage.includes('Backend URL not configured')) {
+			if (
+				errorMessage.includes('Phone number not found') ||
+				errorMessage.includes('Backend URL not configured')
+			) {
 				Alert.alert('Configuration Error', errorMessage);
 			}
 		} finally {
@@ -164,95 +175,112 @@ export default function BankDetailsPage() {
 	};
 
 	return (
-		<View className="h-full flex-col bg-white">
-			{/* Header */}
-			<View className="bg-primary h-[15%] rounded-b-3xl justify-center relative">
-				<View className="flex-row items-center px-4 pt-12">
-					<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 z-10">
-						<Ionicons name="chevron-back" size={24} color="white" />
-					</TouchableOpacity>
-					<View className="absolute left-0 right-0 items-center pt-12 px-6">
-						<Text className="text-white font-bold text-2xl">Bank Details</Text>
-						<Text className="text-white font-semibold text-sm mt-2 ml-1">
-							Add bank account for weekly payouts
-						</Text>
+		<KeyboardAvoidingView
+			style={{ flex: 1 }}
+			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+			keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+		>
+			<View className="flex-1 flex-col bg-[#F5F5F5]">
+				{/* Header */}
+				<View
+					className="bg-primary rounded-b-3xl"
+					style={{ paddingTop: insets.top + 16, paddingBottom: 24 }}
+				>
+					<View className="flex-row items-center px-4">
+						<TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 z-10">
+							<Ionicons name="chevron-back" size={24} color="white" />
+						</TouchableOpacity>
+						<View className="flex-1 items-center">
+							<Text className="text-white font-bold text-2xl">Bank Details</Text>
+							<Text className="text-white font-semibold text-sm mt-2">
+								Add bank account for weekly payouts
+							</Text>
+						</View>
+						<View style={{ width: 24 }} />
 					</View>
 				</View>
-			</View>
 
-			{/* Content */}
-			<ScrollView className="flex-1 px-6 pt-5">
-				<View className="bg-white rounded-xl mb-6">
-					<Text className="text-[#2B2E35] font-semibold pb-4 text-xl">Account Information</Text>
+				{/* Content */}
+				<ScrollView
+					className="flex-1 px-6 pt-5 bg-[#F5F5F5]"
+					contentContainerStyle={{ paddingBottom: 40 }}
+					keyboardShouldPersistTaps="handled"
+					showsVerticalScrollIndicator={false}
+				>
+					<View className="bg-current rounded-xl mb-6">
+						<Text className="text-[#2B2E35] font-semibold pb-4 text-xl">Account Information</Text>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Account Holder Name"
-						placeholder="Enter full name as per bank records"
-						value={bankDetails.accountHolderName}
-						onChange={(value) => handleChange('accountHolderName', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Account Holder Name"
+							placeholder="Enter full name as per bank records"
+							value={bankDetails.accountHolderName}
+							onChange={(value) => handleChange('accountHolderName', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Account Number"
-						placeholder="Enter your account number"
-						value={bankDetails.accountNumber}
-						onChange={(value) => handleChange('accountNumber', value)}
-						keyboardType="numeric"
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Account Number"
+							placeholder="Enter your account number"
+							value={bankDetails.accountNumber}
+							onChange={(value) => handleChange('accountNumber', value)}
+							keyboardType="numeric"
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Confirm Account Number"
-						placeholder="Re-enter your account number"
-						value={bankDetails.confirmAccountNumber}
-						onChange={(value) => handleChange('confirmAccountNumber', value)}
-						keyboardType="numeric"
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Confirm Account Number"
+							placeholder="Re-enter your account number"
+							value={bankDetails.confirmAccountNumber}
+							onChange={(value) => handleChange('confirmAccountNumber', value)}
+							keyboardType="numeric"
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="IFSC Code"
-						placeholder="Enter IFSC code"
-						value={bankDetails.ifscCode}
-						onChange={(value) => handleChange('ifscCode', value.toUpperCase())}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="IFSC Code"
+							placeholder="Enter IFSC code"
+							value={bankDetails.ifscCode}
+							onChange={(value) => handleChange('ifscCode', value.toUpperCase())}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Bank Name"
-						placeholder="Enter bank name"
-						value={bankDetails.bankName}
-						onChange={(value) => handleChange('bankName', value)}
-					/>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Bank Name"
+							placeholder="Enter bank name"
+							value={bankDetails.bankName}
+							onChange={(value) => handleChange('bankName', value)}
+						/>
 
-					<View style={{ height: 10 }} />
-					<Input
-						label="Branch Name"
-						placeholder="Enter branch name"
-						value={bankDetails.branchName}
-						onChange={(value) => handleChange('branchName', value)}
-					/>
-				</View>
+						<View style={{ height: 10 }} />
+						<Input
+							label="Branch Name"
+							placeholder="Enter branch name"
+							value={bankDetails.branchName}
+							onChange={(value) => handleChange('branchName', value)}
+						/>
+					</View>
 
-				<View className="mb-8">
-					<ButtonOpacity
-						onPress={handleSave}
-						disabled={!isFormValid() || isLoading}
-						className={`${!isFormValid() || isLoading ? 'bg-gray-400' : 'bg-primary'}`}
-					>
-						<Text
-							className={`font-medium text-xl py-2 ${
-								!isFormValid() || isLoading ? 'text-gray-600' : 'text-white'
+					<View style={{ paddingBottom: 6 }}>
+						<ButtonOpacity
+							onPress={handleSave}
+							disabled={!isFormValid() || isLoading}
+							className={`rounded-full px-6 py-3 items-center justify-center flex-row ${
+								!isFormValid() || isLoading ? 'bg-gray-200' : 'bg-primary'
 							}`}
 						>
-							{isLoading ? 'Saving...' : 'Save Details'}
-						</Text>
-					</ButtonOpacity>
-				</View>
-			</ScrollView>
-			{errorMsg !== '' && <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} />}
-		</View>
+							<Text
+								className={`font-medium text-xl ${
+									!isFormValid() || isLoading ? 'text-gray-500' : 'text-white'
+								}`}
+							>
+								{isLoading ? 'Saving...' : 'Save Details'}
+							</Text>
+						</ButtonOpacity>
+					</View>
+				</ScrollView>
+				{errorMsg !== '' ? <ErrorToast message={errorMsg} onClose={() => setErrorMsg('')} /> : null}
+			</View>
+		</KeyboardAvoidingView>
 	);
 }

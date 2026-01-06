@@ -19,6 +19,7 @@ import type { NavigationProp, RootStackParamList } from '@/app/utils/types';
 import ErrorToast from '../components/error';
 import { saveImage } from '@/app/utils/imageStorage';
 import * as Device from 'expo-device';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AadhaarRouteProp = RouteProp<RootStackParamList, 'Aadhaar'>;
 
@@ -34,6 +35,7 @@ export default function AadhaarCardDetails() {
 	const [frontPhoto, setFrontPhoto] = useState<string | null>(null);
 	const [backPhoto, setBackPhoto] = useState<string | null>(null);
 	const [errorMsg, setErrorMsg] = useState('');
+	const insets = useSafeAreaInsets();
 
 	const [documentsStatus, setDocumentsStatus] = useState<DocumentsStatus>({
 		aadhaarCard: false,
@@ -47,6 +49,11 @@ export default function AadhaarCardDetails() {
 
 	// Load documents status on component mount
 	useEffect(() => {
+		const fetchDriverID = async () => {
+			const driverID = await AsyncStorage.getItem('driverId');
+			console.log('Documents Page: ' + driverID);
+		};
+		fetchDriverID();
 		loadDocumentsStatus();
 	}, []);
 
@@ -136,7 +143,8 @@ export default function AadhaarCardDetails() {
 	};
 
 	const handleContinue = async () => {
-		//const driverID = await AsyncStorage.getItem('driverId');
+		const driverID = await AsyncStorage.getItem('driverId');
+		console.log('Documents Page: ' + driverID);
 		if (frontPhoto && backPhoto) {
 			try {
 				// Update the documents status for the current document type
@@ -146,7 +154,7 @@ export default function AadhaarCardDetails() {
 					[documentKey]: true,
 				};
 				setDocumentsStatus(newStatus);
-				console.log(documentKey);
+				//console.log(documentKey);
 				await saveDocumentsStatus(newStatus);
 				const uri1 = await saveImage(frontPhoto, documentKey, 'front');
 				const uri2 = await saveImage(backPhoto, documentKey, 'back');
@@ -175,7 +183,7 @@ export default function AadhaarCardDetails() {
 	return (
 		<SafeAreaView
 			className="flex-1 bg-white"
-			style={{ paddingTop: Platform.OS === 'android' ? 25 : 0 }}
+			style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
 		>
 			<StatusBar barStyle="dark-content" />
 			<View className="px-4 py-4 flex-row items-center">
@@ -184,7 +192,7 @@ export default function AadhaarCardDetails() {
 				</TouchableOpacity>
 			</View>
 
-			<ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-4">
+			<ScrollView contentContainerStyle={{ paddingBottom: 100 + insets.bottom }} className="px-4">
 				<Text className="text-3xl font-medium text-gray-800 mb-2">{text} details</Text>
 				<Text className="text-gray-500 mb-6">
 					Upload focused photo of your {text.toLowerCase()} for faster verification

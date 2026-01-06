@@ -1,43 +1,55 @@
 {
-  "expo": {
-    "name": "Delivery App",
-    "slug": "delivery-app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./app/assets/images/main-splash.png",
-    "scheme": "deliveryapp",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./app/assets/images/main-splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./app/assets/images/main-splash.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./app/assets/images/main-splash.png"
-    },
-    "plugins": [
-      [
-        "expo-router",
-        {
-          "root": "./app"
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
-  }
+	"expo": {
+		"name": "Delivery App",
+		"slug": "delivery-app",
+		"version": "1.1.0",
+		"orientation": "portrait",
+		"icon": "./app/assets/images/icon.png",
+		"scheme": "deliveryapp",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+
+		"splash": {
+			"image": "./app/assets/images/splash.png",
+			"resizeMode": "cover",
+			"backgroundColor": "#121212"
+		},
+
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "com.himalayas.deliveryapp",
+			"infoPlist": {
+				"ITSAppUsesNonExemptEncryption": false
+			}
+		},
+
+		"android": {
+			"package": "com.parker_2107.deliveryapp",
+			"adaptiveIcon": {
+				"foregroundImage": "./app/assets/images/adaptive-icon.png",
+				"backgroundColor": "#121212"
+			},
+			"edgeToEdgeEnabled": true
+		},
+
+		"web": {
+			"favicon": "./app/assets/images/icon.png"
+		},
+
+		"plugins": [
+			"expo-web-browser",
+			[
+				"expo-router",
+				{
+					"root": "./app"
+				}
+			]
+		],
+
+		"extra": {
+			"eas": {
+				"projectId": "e4f0078d-0986-40ed-82c4-29aed7cdc09f"
+			}
+		}
+	}
 }

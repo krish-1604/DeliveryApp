@@ -48,39 +48,91 @@ const VerifyScreen = () => {
 
 		try {
 			setVerifying(true);
-			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
-			const api = new DriverAPI();
-			const response = await api.verifyOTP(formatted, otpValues);
-			console.log('Verification response:', response);
-			if (response.success) {
-				if (response.userExists && response.isCompletelyVerified) {
-					await AsyncStorage.multiSet([
-						['driverId', response.driver.id],
+
+			const persistToken = async (token?: string | null) => {
+				if (token) {
+					await AsyncStorage.setItem('auth_token', token);
+				}
+			};
+
+			// Testing backdoor: Allow test phone number with specific OTP
+			if (phoneNumber === '8888888888' && otpValues === '123456') {
+				// Mock successful verification for test user
+				const mockResponse = {
+					success: true,
+					message: 'OTP verified successfully (TEST MODE)',
+					userExists: false,
+					isCompletelyVerified: false,
+					token: 'test_token_' + Date.now(),
+					driver: {
+						id: 'test_driver_' + Date.now(),
+						phoneNumber: '+918888888888',
+						firstName: 'Test',
+						lastName: 'User',
+						profilePicture: null,
+					},
+				};
+
+				await AsyncStorage.setItem('driverId', mockResponse.driver.id);
+				await persistToken(mockResponse.token);
+
+				if (mockResponse.userExists && mockResponse.isCompletelyVerified) {
+					const payload: [string, string][] = [
 						['isVerified', 'true'],
 						[
 							'userProfile',
 							JSON.stringify({
-								firstName: response.driver.firstName,
-								lastName: response.driver.lastName,
-								phoneNumber: response.driver.phoneNumber,
-								profilePicture: response.driver.profilePicture,
+								firstName: mockResponse.driver.firstName,
+								lastName: mockResponse.driver.lastName,
+								phoneNumber: mockResponse.driver.phoneNumber,
+								profilePicture: mockResponse.driver.profilePicture,
 							}),
 						],
-					]);
+					];
+					if (mockResponse.token) {
+						payload.push(['auth_token', mockResponse.token]);
+					}
+					await AsyncStorage.multiSet(payload);
+					navigation.navigate('MainTabs');
+				} else {
+					navigation.navigate('PersonalInformation');
+				}
+				return;
+			}
+
+			const formatted = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+			const api = new DriverAPI();
+			const response = await api.verifyOTP(formatted, otpValues);
+			console.log(response);
+			if (response.success) {
+				console.log(response);
+				if (response.userExists == false) {
+					navigation.navigate('PersonalInformation');
+					return;
+				}
+				const profileEntry: [string, string] = [
+					'userProfile',
+					JSON.stringify({
+						firstName: response.driver.firstName,
+						lastName: response.driver.lastName,
+						phoneNumber: response.driver.phoneNumber,
+						profilePicture: response.driver.profilePicture,
+					}),
+				];
+
+				if (response.userExists && response.isCompletelyVerified) {
+					await AsyncStorage.setItem('driverId', response.driver.id);
+					const entries: [string, string][] = [profileEntry, ['isVerified', 'true']];
+					if (response.token) {
+						await persistToken(response.token);
+						console.log(response.token);
+						entries.push(['auth_token', response.token]);
+					}
+					await AsyncStorage.multiSet(entries);
 					navigation.navigate('MainTabs');
 				} else if (response.userExists && !response.isCompletelyVerified) {
-					await AsyncStorage.multiSet([
-						['driverId', response.driver.id],
-						[
-							'userProfile',
-							JSON.stringify({
-								firstName: response.driver.firstName,
-								lastName: response.driver.lastName,
-								phoneNumber: response.driver.phoneNumber,
-								profilePicture: response.driver.profilePicture,
-							}),
-						],
-					]);
+					await AsyncStorage.setItem('driverId', response.driver.id);
+					await AsyncStorage.multiSet([profileEntry]);
 					navigation.navigate('Details');
 				} else {
 					//await AsyncStorage.removeItem('phoneNumber');
@@ -90,6 +142,8 @@ const VerifyScreen = () => {
 				Alert.alert('Verification Failed', response.message || 'Invalid OTP');
 			}
 		} catch (err: unknown) {
+			console.log(err);
+
 			if ((err as AxiosError)?.response?.status === 400) {
 				Alert.alert('Invalid OTP', 'The OTP you entered is incorrect.');
 			} else {
