@@ -190,6 +190,7 @@ export class DriverAPI {
 	): Promise<{
 		success: boolean;
 		message: string;
+		requiresOnboarding: boolean;
 		userExists: boolean;
 		isCompletelyVerified: boolean;
 		token: string;

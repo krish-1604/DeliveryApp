@@ -87,7 +87,7 @@ const RegisterScreen = () => {
 						boxOutlineColor={theme.colors.primary}
 						checkmarkColor="#fff"
 					>
-						<Text className="text-slate-900 ml-2">
+						<Text className="text-slate-900 ml-2 mr-1">
 							By signing up I agree to the{' '}
 							<Text className="text-primary font-semibold">Terms of use</Text> and{' '}
 							<Text className="text-primary font-semibold">Privacy Policy</Text>.

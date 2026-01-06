@@ -106,11 +106,10 @@ const VerifyScreen = () => {
 			console.log(response);
 			if (response.success) {
 				console.log(response);
-
-				await AsyncStorage.setItem('driverId', response.driver.id);
-				await persistToken(response.token);
-				console.log(response.token);
-
+				if (response.userExists == false) {
+					navigation.navigate('PersonalInformation');
+					return;
+				}
 				const profileEntry: [string, string] = [
 					'userProfile',
 					JSON.stringify({
@@ -122,13 +121,17 @@ const VerifyScreen = () => {
 				];
 
 				if (response.userExists && response.isCompletelyVerified) {
+					await AsyncStorage.setItem('driverId', response.driver.id);
 					const entries: [string, string][] = [profileEntry, ['isVerified', 'true']];
 					if (response.token) {
+						await persistToken(response.token);
+						console.log(response.token);
 						entries.push(['auth_token', response.token]);
 					}
 					await AsyncStorage.multiSet(entries);
 					navigation.navigate('MainTabs');
 				} else if (response.userExists && !response.isCompletelyVerified) {
+					await AsyncStorage.setItem('driverId', response.driver.id);
 					await AsyncStorage.multiSet([profileEntry]);
 					navigation.navigate('Details');
 				} else {
