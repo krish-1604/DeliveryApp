@@ -4,7 +4,7 @@
 		"slug": "delivery-app",
 		"version": "1.1.0",
 		"orientation": "portrait",
-		"icon": "./app/assets/images/icon.png",
+		"icon": "./app/assets/images/logo.png",
 		"scheme": "deliveryapp",
 		"userInterfaceStyle": "automatic",
 		"newArchEnabled": true,
@@ -26,14 +26,14 @@
 		"android": {
 			"package": "com.parker_2107.deliveryapp",
 			"adaptiveIcon": {
-				"foregroundImage": "./app/assets/images/adaptive-icon.png",
+				"foregroundImage": "./app/assets/images/logo.png",
 				"backgroundColor": "#121212"
 			},
 			"edgeToEdgeEnabled": true
 		},
 
 		"web": {
-			"favicon": "./app/assets/images/icon.png"
+			"favicon": "./app/assets/images/logo.png"
 		},
 
 		"plugins": [
