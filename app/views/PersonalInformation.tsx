@@ -62,7 +62,8 @@ const PersonalInformationForm: React.FC = () => {
 	const [showLanguageDropdown, setShowLanguageDropdown] = useState<boolean>(false);
 	const [showBloodGroupDropdown, setShowBloodGroupDropdown] = useState<boolean>(false);
 	const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+	const [selectedDate, setSelectedDate] = useState<Date>(new Date(2025, 0, 1));
+	const [tempDate, setTempDate] = useState<Date>(selectedDate);
 	const [focusedField, setFocusedField] = useState<string | null>(null);
 	const [errorMsg, setErrorMsg] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,14 +152,24 @@ const PersonalInformationForm: React.FC = () => {
 		if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
 			age--;
 		}
+		console.log(age);
 
 		return age;
+	};
+	const formatDateLocal = (date: Date) => {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		console.log(`${year}-${month}-${day}`);
+		return `${year}-${month}-${day}`;
 	};
 
 	const handleDateChange = (event: DateTimePickerEvent, date?: Date) => {
 		setShowDatePicker(false);
 
 		if (date && event.type === 'set') {
+			console.log(date);
+
 			const age = calculateAge(date);
 
 			if (age < 21) {
@@ -167,15 +178,14 @@ const PersonalInformationForm: React.FC = () => {
 				]);
 				return;
 			}
-
 			setSelectedDate(date);
-			const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-			updateFormData('dateOfBirth', formattedDate);
+			updateFormData('dateOfBirth', formatDateLocal(date));
 		}
 	};
 
 	const showDatePickerModal = () => {
 		setShowDatePicker(true);
+		setTempDate(selectedDate);
 	};
 
 	const addLanguage = (languageValue: string) => {
@@ -779,40 +789,75 @@ const PersonalInformationForm: React.FC = () => {
 			</ScrollView>
 
 			{/* Date Picker */}
-			{showDatePicker && (
+			{showDatePicker && Platform.OS === 'ios' && (
 				<Modal
-					visible={showDatePicker}
-					transparent={true}
+					visible
+					transparent
 					animationType="slide"
 					onRequestClose={() => setShowDatePicker(false)}
 				>
 					<View style={styles.datePickerModalOverlay}>
 						<View style={styles.datePickerModalContent}>
+							{/* Header */}
 							<View style={styles.datePickerHeader}>
-								<TouchableOpacity onPress={() => setShowDatePicker(false)}>
-									<Text style={styles.datePickerCancelText}>Cancel</Text>
-								</TouchableOpacity>
-								<Text style={styles.datePickerTitle}>Select Date</Text>
 								<TouchableOpacity
 									onPress={() => {
-										handleDateChange({ type: 'set' } as DateTimePickerEvent, selectedDate);
+										setTempDate(selectedDate);
+										setShowDatePicker(false);
+									}}
+								>
+									<Text style={styles.datePickerCancelText}>Cancel</Text>
+								</TouchableOpacity>
+
+								<Text style={styles.datePickerTitle}>Select Date</Text>
+
+								<TouchableOpacity
+									onPress={() => {
+										handleDateChange({ type: 'set' } as DateTimePickerEvent, tempDate);
+										setShowDatePicker(false);
 									}}
 								>
 									<Text style={styles.datePickerDoneText}>Done</Text>
 								</TouchableOpacity>
 							</View>
-							<DateTimePicker
-								value={selectedDate}
-								mode="date"
-								display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-								onChange={handleDateChange}
-								maximumDate={new Date()}
-								minimumDate={new Date(1900, 0, 1)}
-								style={styles.datePicker}
-							/>
+
+							{/* iOS Spinner */}
+							<View style={{ alignItems: 'center' }}>
+								<DateTimePicker
+									value={tempDate}
+									mode="date"
+									display="spinner"
+									onChange={(_, date) => {
+										if (date) setTempDate(date);
+									}}
+									maximumDate={new Date()}
+									minimumDate={new Date(1900, 0, 1)}
+									style={{ height: 400 }}
+									textColor="#000"
+								/>
+							</View>
 						</View>
 					</View>
 				</Modal>
+			)}
+
+			{showDatePicker && Platform.OS === 'android' && (
+				<DateTimePicker
+					value={selectedDate}
+					mode="date"
+					display="default"
+					onChange={(event, date) => {
+						setShowDatePicker(false);
+
+						if (event.type === 'dismissed') return;
+
+						if (event.type === 'set' && date) {
+							handleDateChange(event, date);
+						}
+					}}
+					maximumDate={new Date()}
+					minimumDate={new Date(1900, 0, 1)}
+				/>
 			)}
 
 			{/* Language Dropdown Modal */}
@@ -1097,37 +1142,46 @@ const styles = StyleSheet.create({
 	// Date Picker Modal Styles
 	datePickerModalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'center',
+		justifyContent: 'flex-end',
 		alignItems: 'center',
+		alignContent: 'center',
+		backgroundColor: 'rgba(0,0,0,0.4)',
 	},
+
 	datePickerModalContent: {
 		backgroundColor: '#fff',
-		borderRadius: 20,
-		width: '90%',
-		maxWidth: 400,
+		borderTopLeftRadius: 16,
+		borderTopRightRadius: 16,
+		paddingBottom: 16,
+		// alignItems: 'center',
+		width: '100%',
 	},
+
 	datePickerHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		padding: 20,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
 		borderBottomWidth: 1,
-		borderBottomColor: '#E0E0E0',
+		borderBottomColor: '#eee',
 	},
-	datePickerTitle: {
-		fontSize: 18,
-		fontWeight: '600',
-		color: '#333',
-	},
+
 	datePickerCancelText: {
+		color: '#999',
 		fontSize: 16,
-		color: '#666',
 	},
+
 	datePickerDoneText: {
+		color: '#007AFF',
 		fontSize: 16,
-		color: '#003032',
 		fontWeight: '600',
+	},
+
+	datePickerTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#000',
 	},
 	datePicker: {
 		height: 200,
