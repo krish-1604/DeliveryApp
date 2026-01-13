@@ -1,19 +1,14 @@
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 
-/**
- * Saves an image URI (e.g. from camera or gallery) to cache directory
- * Returns the new URI (inside app storage)
- */
 export const saveImage = async (imageUri: string, docKey: string, side: 'front' | 'back') => {
 	const filename = `${docKey}_${side}.jpg`;
-	const dest = FileSystem.documentDirectory + filename;
 
-	await FileSystem.copyAsync({
-		from: imageUri,
-		to: dest,
-	});
+	const source = new File(imageUri);
+	const dest = new File(Paths.cache, filename);
 
-	return dest;
+	source.copy(dest);
+
+	return dest.uri;
 };
 
 /**
@@ -21,9 +16,10 @@ export const saveImage = async (imageUri: string, docKey: string, side: 'front' 
  */
 export const deleteCachedImage = async (uri: string): Promise<void> => {
 	try {
-		await FileSystem.deleteAsync(uri, { idempotent: true });
-	} catch (error) {
-		console.error('Failed to delete image:', error);
+		const file = new File(uri);
+		file.delete();
+	} catch (err) {
+		console.error('Failed to delete image:', err);
 	}
 };
 
@@ -32,10 +28,10 @@ export const deleteCachedImage = async (uri: string): Promise<void> => {
  */
 export const imageExists = async (uri: string): Promise<boolean> => {
 	try {
-		const info = await FileSystem.getInfoAsync(uri);
+		const file = new File(uri);
+		const info = file.info();
 		return info.exists;
-	} catch (error) {
-		console.error('Error checking file:', error);
+	} catch {
 		return false;
 	}
 };

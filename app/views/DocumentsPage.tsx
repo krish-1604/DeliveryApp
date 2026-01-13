@@ -78,6 +78,7 @@ const DocumentsPage = () => {
 			const savedStatus = await AsyncStorage.getItem(DOCUMENTS_STATUS_KEY);
 			if (savedStatus) {
 				const parsedStatus = JSON.parse(savedStatus);
+				console.log(parsedStatus);
 				setDocumentsStatus(parsedStatus);
 			}
 		} catch (error) {

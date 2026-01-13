@@ -227,9 +227,7 @@ const PersonalInformationForm: React.FC = () => {
 
 			// Launch image picker with simplified options
 			const result = await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: ImagePicker.MediaTypeOptions.Images,
-				allowsEditing: true,
-				aspect: [1, 1],
+				mediaTypes: 'images',
 				quality: 0.8,
 			});
 
